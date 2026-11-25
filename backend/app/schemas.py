@@ -43,6 +43,13 @@ class FieldCoverage(StrictModel):
     evidence: list[Evidence] = Field(default_factory=list)
 
 
+class MaterialMatch(StrictModel):
+    document_id: str
+    status: Literal["verified", "unverified", "unreadable"]
+    reason: str
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
 class Finding(StrictModel):
     requirement_id: str
     applicability: Literal["applicable", "not_applicable", "unknown"] = "applicable"
@@ -53,6 +60,7 @@ class Finding(StrictModel):
     evidence: list[Evidence] = Field(default_factory=list, max_length=20)
     dependencies: list[str] = Field(default_factory=list)
     field_coverage: list[FieldCoverage] = Field(default_factory=list)
+    material_matches: list[MaterialMatch] = Field(default_factory=list)
 
 
 class CaseInput(StrictModel):

@@ -16,7 +16,7 @@ def rule(kind="material_presence", **kwargs):
     }
 
 
-def doc(text="成绩单\n姓名：李沐", **kwargs):
+def doc(text="成绩单\n姓名：李沐\n平均绩点：3.6", **kwargs):
     return {
         "id": "d1",
         "purpose": "material",

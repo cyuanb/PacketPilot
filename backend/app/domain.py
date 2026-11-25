@@ -83,7 +83,8 @@ def is_placeholder(value):
         not value
         or bool(re.fullmatch(r"[_\-—.\s]+", value))
         or value in {"待填写", "请填写", "未填写", "待补充", "N/A", "n/a", "TODO"}
-        or bool(re.fullmatch(r"\{\{.*\}\}|\[.*\]", value))
+        or value.startswith(("请填写", "请填入", "待填写", "待补充"))
+        or bool(re.fullmatch(r"\{\{.*\}\}|\[.*\]|[（(](?:请)?填写.*[）)]", value))
     )
 
 
@@ -142,6 +143,59 @@ def field_coverage(documents, field, *, dates=False):
     return coverage
 
 
+# Deliberately limited structure checks, not a general classifier or authenticity detector.
+# Each group requires one non-placeholder field, in addition to a document heading.
+MATERIAL_PROFILES = {
+    "成绩单": (("姓名", "学生姓名"), ("平均绩点", "绩点", "成绩", "课程成绩")),
+    "申请表": (("姓名", "申请人"), ("申请类别", "目标院校", "申请项目")),
+    "学习计划": (("学习目标",), ("拟修课程", "学习安排")),
+    "推荐信": (("姓名", "申请人"), ("推荐意见",)),
+    "入职登记表": (("姓名",), ("入职日期", "部门", "岗位")),
+    "营业执照": (("名称", "企业名称"), ("统一社会信用代码", "注册号")),
+}
+
+
+def material_identity(document, document_type):
+    result = {"document_id": document["id"], "status": "unverified", "reason": "", "evidence": []}
+    if document["parse_status"] != "ready":
+        return {**result, "status": "unreadable", "reason": "材料内容尚未完整读取"}
+    first = next(
+        ((page, line) for page in document["pages"] for line in page["text"].splitlines() if line.strip()),
+        None,
+    )
+    profile = MATERIAL_PROFILES.get(document_type)
+    if not first or not profile:
+        return {**result, "reason": "当前没有足够的材料类型结构证据，需要后续匹配或人工核对"}
+    page, line = first
+    heading = norm(line.strip().lstrip("#").strip())
+    expected = re.escape(document_type) + r"(?:[（(](?:合成演示材料|合成示例|合成材料|synthetic)[）)])?"
+    if not re.fullmatch(expected, heading):
+        return {**result, "reason": "正文提及或标签匹配不足以确认材料类型；未找到明确的材料标题"}
+    first_lines = "\n".join(p["text"] for p in document["pages"]).splitlines()[:4]
+    if any(re.search(r"填写说明|填写示例|样例|模板", line) for line in first_lines):
+        return {**result, "reason": "文件带有说明或模板标记，不能直接当作已完成材料"}
+    evidence = [{"document_id": document["id"], "page": page["number"], "quote": line.strip()[:300]}]
+    for alternatives in profile:
+        field = next(
+            (
+                c
+                for name in alternatives
+                for c in field_coverage([document], name)
+                if c["status"] == "covered"
+            ),
+            None,
+        )
+        if field is None:
+            return {**result, "reason": "有材料标题，但结构字段不足或仍有占位内容，需要核对原件"}
+        evidence.extend(field["evidence"])
+    return {
+        **result,
+        "status": "verified",
+        "reason": "材料标题与有限结构字段相互支持；不验证真实性",
+        "evidence": evidence,
+    }
+
+
 def check_one(r, docs, facts, today=None):
     r = Requirement.model_validate(r)
     result = dict(
@@ -164,6 +218,8 @@ def check_one(r, docs, facts, today=None):
         result.update(applicability="not_applicable", reason="根据已确认背景，此项不适用", next_action="")
         return Finding(**result).model_dump()
     matched = candidates(r, docs)
+    if r.kind == "material_presence":
+        result["material_matches"] = [material_identity(d, r.document_type) for d in matched]
     field = r.parameters.get("field")
     if (
         r.kind in ("required_field", "field_consistency", "date_constraint")
@@ -196,12 +252,20 @@ def check_one(r, docs, facts, today=None):
             next_action="检查签署、盖章或原件要求后记录人工确认",
         )
     elif r.kind == "material_presence":
-        if evidence:
+        verified = [m for m in result["material_matches"] if m["status"] == "verified"]
+        if verified:
             result.update(
-                verdict="pass", reason="已找到包含对应材料标识的可读文件；仅确认材料存在", next_action=""
+                verdict="pass",
+                reason="已找到标题与结构字段匹配的可读材料；不代表内容全部合格或真实性已验证",
+                evidence=[e for m in verified for e in m["evidence"]][:20],
+                next_action="",
             )
         else:
-            result.update(reason="分类与要求匹配，但正文不足以确认材料类型")
+            result.update(
+                reason="仅找到候选内容，材料类型或填写完整性尚未确认",
+                evidence=[],
+                next_action="查看候选说明，提供可识别的完整材料；不能只凭文件名或提及词判定",
+            )
     elif r.kind in ("file_format", "file_size", "page_count"):
         if r.kind == "file_format" and p.get("allowed"):
             ok = all(
