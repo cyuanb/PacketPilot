@@ -35,6 +35,14 @@ class Requirement(StrictModel):
     explanation: str = Field(default="", max_length=1000)
 
 
+class FieldCoverage(StrictModel):
+    document_id: str
+    field: str
+    status: Literal["covered", "missing", "unreadable", "ambiguous", "invalid"]
+    values: list[str] = Field(default_factory=list)
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
 class Finding(StrictModel):
     requirement_id: str
     applicability: Literal["applicable", "not_applicable", "unknown"] = "applicable"
@@ -44,6 +52,7 @@ class Finding(StrictModel):
     next_action: str = Field(default="", max_length=1000)
     evidence: list[Evidence] = Field(default_factory=list, max_length=20)
     dependencies: list[str] = Field(default_factory=list)
+    field_coverage: list[FieldCoverage] = Field(default_factory=list)
 
 
 class CaseInput(StrictModel):

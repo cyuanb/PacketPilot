@@ -78,6 +78,70 @@ def candidates(requirement, documents):
     ]
 
 
+def is_placeholder(value):
+    return (
+        not value
+        or bool(re.fullmatch(r"[_\-—.\s]+", value))
+        or value in {"待填写", "请填写", "未填写", "待补充", "N/A", "n/a", "TODO"}
+        or bool(re.fullmatch(r"\{\{.*\}\}|\[.*\]", value))
+    )
+
+
+def field_coverage(documents, field, *, dates=False):
+    """Extract each document independently; a repeated value never covers another document."""
+    coverage = []
+    pattern = re.compile(
+        r"(?:^|[;；|])[ \t]*" + re.escape(field) + r"[ \t]*[：:][ \t]*([^\r\n;；|]*)", re.MULTILINE
+    )
+    for doc in documents:
+        item = {
+            "document_id": doc["id"],
+            "field": field,
+            "status": "unreadable",
+            "values": [],
+            "evidence": [],
+        }
+        if doc["parse_status"] == "ready":
+            invalid = False
+            for page in doc["pages"]:
+                for match in pattern.finditer(page["text"]):
+                    raw = match.group(1).strip()
+                    if is_placeholder(raw):
+                        continue
+                    if len(raw) > 1000:
+                        invalid = True
+                        continue
+                    value = raw if dates else norm(raw)
+                    if value not in item["values"]:
+                        item["values"].append(value)
+                        item["evidence"].append(
+                            {
+                                "document_id": doc["id"],
+                                "page": page["number"],
+                                "quote": match.group(0).strip()[:1000],
+                            }
+                        )
+            if dates:
+                for value in item["values"]:
+                    try:
+                        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                            raise ValueError("ambiguous date")
+                        date.fromisoformat(value)
+                    except ValueError:
+                        invalid = True
+            item["status"] = (
+                "invalid"
+                if invalid
+                else "missing"
+                if not item["values"]
+                else "ambiguous"
+                if len(item["values"]) > 1
+                else "covered"
+            )
+        coverage.append(item)
+    return coverage
+
+
 def check_one(r, docs, facts, today=None):
     r = Requirement.model_validate(r)
     result = dict(
@@ -100,6 +164,13 @@ def check_one(r, docs, facts, today=None):
         result.update(applicability="not_applicable", reason="根据已确认背景，此项不适用", next_action="")
         return Finding(**result).model_dump()
     matched = candidates(r, docs)
+    field = r.parameters.get("field")
+    if (
+        r.kind in ("required_field", "field_consistency", "date_constraint")
+        and isinstance(field, str)
+        and field
+    ):
+        result["field_coverage"] = field_coverage(matched, field, dates=r.kind == "date_constraint")
     uncertain = [d for d in docs if d["purpose"] == "material" and d["parse_status"] != "ready"]
     readable = [d for d in matched if d["parse_status"] == "ready"]
     if not readable:
@@ -156,51 +227,46 @@ def check_one(r, docs, facts, today=None):
             evidence=[e for d in readable for e in excerpts(d)][:20],
         )
     elif r.kind in ("required_field", "field_consistency"):
-        field = str(p.get("field", ""))
-        values = []
-        evidence = []
-        if field:
-            for d in readable:
-                for page in d["pages"]:
-                    matches = re.findall(re.escape(field) + r"\s*[：:]\s*([^\n\r;；]+)", page["text"])
-                    for value in matches:
-                        values.append(norm(value))
-                        evidence += excerpts(d, field)
-        if values:
-            if r.kind == "field_consistency" and len(readable) < 2:
-                result.update(reason="目前只有一份对应材料，无法完成跨材料一致性检查")
-            elif len(set(values)) > 1 and r.kind == "field_consistency":
-                result.update(
-                    verdict="conflict",
-                    reason=f"「{field}」出现不同值",
-                    evidence=evidence[:20],
-                    next_action="查看引用并确认应修改哪份材料",
-                )
-            elif r.kind == "required_field" or len(values) >= len(readable):
-                result.update(
-                    verdict="pass", reason=f"已读取并检查「{field}」", evidence=evidence[:20], next_action=""
-                )
+        coverage = result.get("field_coverage", [])
+        result["evidence"] = [e for c in coverage for e in c["evidence"]][:20]
+        if not coverage:
+            result.update(reason="字段规则缺少明确的字段标签")
+        elif any(c["status"] != "covered" for c in coverage):
+            result.update(
+                reason=f"并非每份对应材料都能唯一读取「{field}」；请逐份确认",
+                next_action="查看逐材料覆盖，补充缺失内容或确认多值的主体",
+            )
+        elif r.kind == "field_consistency" and len(coverage) < 2:
+            result.update(reason="目前只有一份对应材料，无法完成跨材料一致性检查")
+        elif r.kind == "field_consistency" and len({c["values"][0] for c in coverage}) > 1:
+            result.update(
+                verdict="conflict",
+                reason=f"「{field}」出现不同值",
+                next_action="查看各份材料的字段引用并确认应修改哪份",
+            )
         else:
-            result.update(reason=f"未能可靠读取「{field}」，不能据此认定材料缺失该字段")
+            result.update(verdict="pass", reason=f"已逐份读取并检查「{field}」", next_action="")
     elif r.kind == "date_constraint":
-        field, cutoff = str(p.get("field", "")), p.get("not_before", "")
-        if not field or not cutoff:
+        cutoff = p.get("not_before", "")
+        coverage = result.get("field_coverage", [])
+        result["evidence"] = [e for c in coverage for e in c["evidence"]][:20]
+        if not coverage or not isinstance(cutoff, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cutoff):
             result.update(reason="日期规则缺少明确字段或比较日期")
         else:
             try:
                 reference = date.fromisoformat(cutoff)
-                values = []
-                for d in readable:
-                    for page in d["pages"]:
-                        hits = re.findall(re.escape(field) + r"\s*[：:]\s*(\d{4}-\d{2}-\d{2})", page["text"])
-                        values += [date.fromisoformat(v) for v in hits]
-                if len(values) >= len(readable):
+                if all(c["status"] == "covered" for c in coverage):
+                    values = [date.fromisoformat(c["values"][0]) for c in coverage]
                     ok = all(v >= reference for v in values)
                     result.update(
                         verdict="pass" if ok else "fail",
                         reason=f"日期应不早于 {cutoff}（含当日）；读取到 {', '.join(map(str, values))}",
-                        evidence=[e for d in readable for e in excerpts(d, field)][:20],
                         next_action="" if ok else "提供满足日期要求的材料",
+                    )
+                else:
+                    result.update(
+                        reason=f"并非每份对应材料都能唯一读取有效的「{field}」日期",
+                        next_action="逐份补充或确认日期；不根据其他文件的重复日期推断",
                     )
             except (ValueError, TypeError):
                 result.update(reason="日期格式或起算方式无法可靠解释")
