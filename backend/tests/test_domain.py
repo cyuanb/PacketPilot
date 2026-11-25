@@ -139,11 +139,14 @@ def test_stale_unknown_and_empty_are_never_ready():
     passing = check_one(rule(), [doc()], {})
     assert overall([]) == "not_ready"
     assert overall([passing], stale=True) == "stale"
-    assert overall([check_one(rule(), [doc("", parse_status="failed")], {})]) == "needs_review"
+    assert (
+        overall([check_one(rule(), [doc("", parse_status="failed")], {})], requirements=[rule()])
+        == "needs_review"
+    )
 
 
 def test_attestation_only_resolves_manual_unknown():
     manual = check_one(rule("manual_review"), [doc()], {})
-    assert overall([manual], confirmed=["r1"]) == "ready"
+    assert overall([manual], confirmed=["r1"], requirements=[rule("manual_review")]) == "ready"
     unreadable = check_one(rule(), [doc("", parse_status="needs_review")], {})
-    assert overall([unreadable], confirmed=["r1"]) == "needs_review"
+    assert overall([unreadable], confirmed=["r1"], requirements=[rule()]) == "needs_review"

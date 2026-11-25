@@ -23,3 +23,9 @@ Cancellation is cooperative. An inference request may finish before cancellation
 Cookie sessions are HttpOnly and SameSite Strict. Resources are authorized through their owning case. Upload filenames do not become storage paths. Runtime configuration is never sent to the browser.
 
 Parser subprocesses have time and output limits, but are not a hardened sandbox. External deployment requires an appropriate TLS and access configuration.
+
+## Readiness contract
+
+Results include engine_version, rules_id, a canonical requirement fingerprint and coverage summary. Aggregation validates the expected result set, duplicates, applicability and verification method.
+
+Field/date coverage is recorded for each candidate material. Presence checks use limited structural profiles and preserve unknown results for unsupported layouts. Legacy or incomplete results cannot be treated as current readiness.

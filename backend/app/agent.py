@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from .config import ROOT, settings
 from .db import SessionLocal
-from .domain import run_checks, verify_evidence
+from .domain import REVIEW_ENGINE_VERSION, review_result, run_checks, verify_evidence
 from .models import Case, Document, Message, Run, ToolCall
 from .schemas import Finding, Requirement
 from .services import event, save_rules
@@ -158,7 +158,7 @@ def execute_tool(run_id, fence, name, args):
             if not snap["requirements"]:
                 raise ValueError("尚未启用要求，请先提取、审阅并启用草稿")
             findings = run_checks(snap)
-            run.result = {**run.result, "findings": findings}
+            run.result = {**run.result, **review_result(snap, findings)}
             result = {"findings": findings}
             event(db, run_id, "finding.updated", {"count": len(findings)})
         elif name == "record_semantic_findings":
@@ -185,9 +185,15 @@ def execute_tool(run_id, fence, name, args):
                     if d["id"] in {e["document_id"] for e in f["evidence"]}
                 ):
                     raise ValueError("未完整读取的材料不能判为通过")
-                f.update(method="semantic", applicability="applicable", dependencies=original["dependencies"])
+                f.update(
+                    method="semantic",
+                    applicability="applicable",
+                    dependencies=original["dependencies"],
+                    field_coverage=original.get("field_coverage", []),
+                    material_matches=original.get("material_matches", []),
+                )
                 findings[f["requirement_id"]] = f
-            run.result = {**run.result, "findings": list(findings.values())}
+            run.result = {**run.result, **review_result(snap, list(findings.values()))}
             result = {"saved": len(args["findings"])}
         elif name == "propose_facts":
             if len(args.get("facts", {})) > 30:
@@ -232,6 +238,8 @@ def model_request(messages):
 def run_agent(run_id, fence):
     with SessionLocal.begin() as db:
         run = locked_run(db, run_id, fence)
+        if "findings" in run.result and run.result.get("engine_version") != REVIEW_ENGINE_VERSION:
+            raise RuntimeError("运行包含旧版检查结果，请重新发起预检")
         case = db.get(Case, run.case_id)
         skill_name = (
             "amendment-recheck" if run.kind == "check" and case.current_check_id else "application-preflight"

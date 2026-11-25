@@ -11,7 +11,7 @@ from sqlalchemy import or_, select
 from .agent import Cancelled, locked_run, run_agent
 from .config import ROOT, settings
 from .db import SessionLocal, now
-from .domain import run_checks
+from .domain import review_result, run_checks
 from .models import Case, Document, Message, Run
 from .services import bump, event
 
@@ -103,7 +103,7 @@ def process(run_id, fence, kind):
                 with SessionLocal.begin() as db:
                     r = locked_run(db, run_id, fence)
                     if "findings" not in r.result:
-                        r.result = {**r.result, "findings": run_checks(r.snapshot)}
+                        r.result = {**r.result, **review_result(r.snapshot, run_checks(r.snapshot))}
             run_agent(run_id, fence)
         with SessionLocal.begin() as db:
             r = locked_run(db, run_id, fence)

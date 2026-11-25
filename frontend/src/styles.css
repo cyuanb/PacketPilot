@@ -1,3 +1,36 @@
+.review-coverage {
+  margin-top: 12px;
+  border: 1px solid #e1e9e4;
+  border-radius: 7px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.review-coverage summary {
+  cursor: pointer;
+  color: #426a55;
+}
+.review-coverage > div {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #edf1ee;
+}
+.review-coverage strong,
+.review-coverage span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.review-coverage span,
+.review-coverage p {
+  color: #657b6b;
+  margin-top: 5px;
+}
+.advisory-label {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #72877b;
+}
 :root {
   font-family: Inter, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
   color: #25362f;

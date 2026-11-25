@@ -393,7 +393,8 @@ export default function App() {
   const doneCount = requirements.filter((r) => {
     const f = findingMap.get(r.id);
     return (
-      f &&
+      !item?.checklist.stale &&
+      f?.evaluation_state === "evaluated" &&
       (f.verdict === "pass" ||
         f.applicability === "not_applicable" ||
         confirmed.has(r.id))
@@ -796,11 +797,11 @@ export default function App() {
                     <div className="case-card-progress">
                       <span>{kinds[c.kind] || "其他申请"}</span>
                       <span>
-                        {
-                          c.checklist.findings.filter(
-                            (f) => f.verdict === "pass",
-                          ).length
-                        }{" "}
+                        {c.checklist.stale
+                          ? "—"
+                          : c.checklist.findings.filter(
+                              (f) => f.verdict === "pass",
+                            ).length}{" "}
                         / {c.checklist.requirements.length} 项已检查
                       </span>
                     </div>
@@ -808,7 +809,8 @@ export default function App() {
                       <i
                         style={{
                           width:
-                            (c.checklist.requirements.length
+                            (!c.checklist.stale &&
+                            c.checklist.requirements.length
                               ? (c.checklist.findings.filter(
                                   (f) => f.verdict === "pass",
                                 ).length /
@@ -981,11 +983,39 @@ export default function App() {
               <div className="stale-banner">
                 <RefreshCw size={18} />
                 <div>
-                  <strong>材料或要求已变化</strong>
-                  <span>下方是历史结果，请重新预检以确认当前准备情况。</span>
+                  <strong>
+                    {item.checklist.legacy
+                      ? "旧版检查需要重新核对"
+                      : "当前结果需要复检"}
+                  </strong>
+                  <span>
+                    {item.checklist.stale_reason ||
+                      "下方是历史结果，请重新预检。"}
+                  </span>
                 </div>
               </div>
             )}
+            {!item.checklist.stale &&
+              item.checklist.run_id &&
+              (!item.checklist.coverage.complete ||
+                !["completed", "waiting_for_input"].includes(
+                  item.checklist.run_status || "",
+                )) && (
+                <div className="stale-banner">
+                  <CircleAlert size={18} />
+                  <div>
+                    <strong>本次检查尚未完整完成</strong>
+                    <span>
+                      有效结果覆盖 {item.checklist.coverage.evaluated_count} /{" "}
+                      {item.checklist.coverage.expected_count} 项要求。
+                      {item.checklist.run_status === "failed"
+                        ? "运行失败，已完成的部分已保留。"
+                        : "存在未检查或无效的结果。"}{" "}
+                      请重新预检后再导出。
+                    </span>
+                  </div>
+                </div>
+              )}
             {tab === "overview" && (
               <div className="overview-grid">
                 <section className="panel checklist-panel">
@@ -995,7 +1025,11 @@ export default function App() {
                       <p>逐项核对要求，点击依据查看原文</p>
                     </div>
                     <span className="count-label">
-                      {requirements.length} 项要求
+                      {requirements.length} 项要求 ·{" "}
+                      {item.checklist.stale
+                        ? "历史结果仅供参考"
+                        : item.checklist.coverage.evaluated_count +
+                          " 项已有有效结果"}
                     </span>
                   </div>
                   {!requirements.length ? (
@@ -1017,9 +1051,11 @@ export default function App() {
                       {requirements.map((r) => {
                         const f = findingMap.get(r.id);
                         const good =
-                          f?.verdict === "pass" ||
-                          f?.applicability === "not_applicable" ||
-                          confirmed.has(r.id);
+                          !item.checklist.stale &&
+                          f?.evaluation_state === "evaluated" &&
+                          (f?.verdict === "pass" ||
+                            f?.applicability === "not_applicable" ||
+                            confirmed.has(r.id));
                         return (
                           <div
                             className={"finding " + (good ? "good" : "")}
@@ -1041,17 +1077,34 @@ export default function App() {
                             </span>
                             <div className="finding-content">
                               <div className="finding-heading">
-                                <h3>{r.title}</h3>
+                                <h3>
+                                  {r.title}
+                                  {!r.required && (
+                                    <small className="advisory-label">
+                                      建议项
+                                    </small>
+                                  )}
+                                </h3>
                                 <Badge
                                   status={
-                                    good ? "pass" : f?.verdict || "unknown"
+                                    item.checklist.stale
+                                      ? "stale"
+                                      : good
+                                        ? "pass"
+                                        : f?.verdict || "unknown"
                                   }
                                 >
-                                  {f?.applicability === "not_applicable"
-                                    ? "不适用"
-                                    : confirmed.has(r.id)
-                                      ? "本人已确认"
-                                      : undefined}
+                                  {item.checklist.stale
+                                    ? "历史结果"
+                                    : f?.evaluation_state === "not_evaluated"
+                                      ? "尚未检查"
+                                      : f?.evaluation_state === "invalid"
+                                        ? "需重查"
+                                        : f?.applicability === "not_applicable"
+                                          ? "不适用"
+                                          : confirmed.has(r.id)
+                                            ? "本人已确认"
+                                            : undefined}
                                 </Badge>
                               </div>
                               <p>
@@ -1061,6 +1114,74 @@ export default function App() {
                                 <div className="next-action">
                                   {f.next_action}
                                 </div>
+                              )}
+                              {!!f?.field_coverage?.length && (
+                                <details className="review-coverage">
+                                  <summary>逐材料字段覆盖</summary>
+                                  {f.field_coverage.map((c, i) => (
+                                    <div key={c.document_id + ":" + i}>
+                                      <strong>
+                                        {item.documents?.find(
+                                          (d) => d.id === c.document_id,
+                                        )?.title || "历史材料"}{" "}
+                                        · {c.field}
+                                      </strong>
+                                      <span>
+                                        {(
+                                          {
+                                            covered: "已唯一读取",
+                                            missing: "未读取到字段",
+                                            unreadable: "材料未完整读取",
+                                            ambiguous: "多个值，需确认主体",
+                                            invalid: "格式尚未确认",
+                                          } as Record<string, string>
+                                        )[c.status] || c.status}
+                                      </span>
+                                      {c.values.length > 0 && (
+                                        <p>{c.values.join(" / ")}</p>
+                                      )}
+                                      {c.evidence[0] && (
+                                        <button
+                                          className="text-action"
+                                          onClick={() =>
+                                            act(() =>
+                                              openEvidence(c.evidence[0]),
+                                            )
+                                          }
+                                        >
+                                          查看字段原文
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </details>
+                              )}
+                              {!!f?.material_matches?.length && (
+                                <details className="review-coverage">
+                                  <summary>候选材料的核对依据</summary>
+                                  {f.material_matches.map((m, i) => (
+                                    <div key={m.document_id + ":" + i}>
+                                      <strong>
+                                        {item.documents?.find(
+                                          (d) => d.id === m.document_id,
+                                        )?.title || "历史材料"}
+                                      </strong>
+                                      <span>{m.reason}</span>
+                                      {m.evidence[0] && (
+                                        <button
+                                          className="text-action"
+                                          onClick={() =>
+                                            act(() =>
+                                              openEvidence(m.evidence[0]),
+                                            )
+                                          }
+                                        >
+                                          查看材料原文
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </details>
                               )}
                               <div className="evidence-actions">
                                 {r.source_evidence.map((e, i) => (
@@ -1084,7 +1205,7 @@ export default function App() {
                                 {f?.method === "manual" &&
                                   f.applicability === "applicable" &&
                                   !confirmed.has(r.id) &&
-                                  !item.checklist.stale && (
+                                  item.checklist.can_export && (
                                     <button
                                       onClick={() => {
                                         setManual(r.id);
@@ -1164,7 +1285,7 @@ export default function App() {
                     <Download size={21} />
                     <h3>带着清单，继续准备</h3>
                     <p>导出当前检查结果，保留依据与待办。</p>
-                    {item.checklist.run_id && !item.checklist.stale ? (
+                    {item.checklist.can_export ? (
                       <div>
                         <a
                           className="text-action"

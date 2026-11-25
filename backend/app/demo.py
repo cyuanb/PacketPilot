@@ -3,7 +3,7 @@
 import hashlib
 from datetime import date, timedelta
 
-from .domain import run_checks
+from .domain import review_result, run_checks
 from .models import Case, Document, RuleSet, Run
 from .services import event, snapshot
 
@@ -98,7 +98,7 @@ def create_demo(db, owner_id):
         revision=c.revision,
         snapshot=snap,
         result={
-            "findings": run_checks(snap),
+            **review_result(snap, run_checks(snap)),
             "answer": "这是合成示例的确定性检查结果。点击「重新预检」可运行真实 Agent。",
         },
     )

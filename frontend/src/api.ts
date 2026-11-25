@@ -18,6 +18,20 @@ export type Finding = {
   reason: string;
   next_action: string;
   evidence: Evidence[];
+  evaluation_state?: "evaluated" | "not_evaluated" | "invalid";
+  field_coverage?: {
+    document_id: string;
+    field: string;
+    status: string;
+    values: string[];
+    evidence: Evidence[];
+  }[];
+  material_matches?: {
+    document_id: string;
+    status: string;
+    reason: string;
+    evidence: Evidence[];
+  }[];
 };
 export type Doc = {
   id: string;
@@ -86,6 +100,22 @@ export type Case = {
     run_id?: string;
     checked_at?: string;
     checked_revision?: number;
+    engine_version: string | null;
+    legacy: boolean;
+    stale_reason: string;
+    run_status: string | null;
+    can_export: boolean;
+    advisory_count: number;
+    coverage: {
+      expected_count: number;
+      evaluated_count: number;
+      complete: boolean;
+      missing_ids: string[];
+      duplicate_ids: string[];
+      unexpected_ids: string[];
+      invalid_ids: string[];
+      invalid_rule_ids: string[];
+    };
     attestations: { requirement_id: string; note: string }[];
   };
 };
