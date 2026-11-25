@@ -854,7 +854,7 @@ export default function App() {
             <div className="dashboard-footer">
               <FileCheck2 size={16} />
               <span>齐呈帮助你检查准备情况，最终材料仍由你确认。</span>
-              <span>PacketPilot · 0.1</span>
+              <span>PacketPilot · 0.1.1</span>
             </div>
           </div>
         ) : !item ? (

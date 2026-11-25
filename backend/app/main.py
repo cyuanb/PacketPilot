@@ -36,7 +36,7 @@ from .services import (
     save_rules,
 )
 
-app = FastAPI(title="PacketPilot API", version="0.1.0", docs_url="/api/docs")
+app = FastAPI(title="PacketPilot API", version="0.1.1", docs_url="/api/docs")
 hasher = PasswordHasher()
 login_attempts = defaultdict(list)
 
@@ -140,7 +140,7 @@ def health(db: Session = Depends(get_db)):
     from sqlalchemy import text
 
     db.execute(text("SELECT 1"))
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.1.1"}
 
 
 @app.get("/api/v1/capabilities")

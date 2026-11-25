@@ -1,6 +1,6 @@
 # PacketPilot
 
-An open-source, self-hosted document preflight workspace. Current version: 0.1.0.
+An open-source, self-hosted document preflight workspace. Current version: 0.1.1.
 
 Import a notice, review extracted requirements, upload documents, inspect evidence-backed findings, amend materials, and export a checklist.
 

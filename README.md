@@ -6,7 +6,7 @@ PacketPilot 是可自行部署的开源材料准备工作台，将通知、资�
 
 [English](README.en.md) · [使用说明](docs/usage.md) · [配置说明](docs/configuration.md) · [架构](docs/architecture.md) · [测试](docs/testing.md)
 
-当前版本：0.1.0。软件使用 Apache-2.0 许可；自行配置的模型或基础设施可能产生资源费用。
+当前版本：0.1.1。软件使用 Apache-2.0 许可；自行配置的模型或基础设施可能产生资源费用。
 
 ## 功能
 
