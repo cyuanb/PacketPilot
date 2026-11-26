@@ -50,7 +50,7 @@ export function Sidebar({
           <FileCheck2 size={25} />
         </span>
         <strong>
-          齐呈<small>PacketPilot</small>
+          齐备<small>PacketPilot</small>
         </strong>
       </button>
       <div className="workspace-label">

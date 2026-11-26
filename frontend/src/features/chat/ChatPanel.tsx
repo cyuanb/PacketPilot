@@ -49,7 +49,7 @@ export function ChatPanel({
               <Sparkles size={20} />
             </span>
             <div>
-              <h2>齐呈助手</h2>
+              <h2>齐备助手</h2>
               <p>基于这份申请的通知、材料和已确认背景</p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function ChatPanel({
                 </span>
               )}
               <div>
-                <small>{m.role === "user" ? "你" : "齐呈助手"}</small>
+                <small>{m.role === "user" ? "你" : "齐备助手"}</small>
                 <div className="message-body">{m.content}</div>
               </div>
             </div>
@@ -109,8 +109,8 @@ export function ChatPanel({
           }}
         >
           <textarea
-            aria-label="发送给齐呈助手"
-            placeholder="告诉齐呈，你想确认什么…"
+            aria-label="发送给齐备助手"
+            placeholder="告诉齐备，你想确认什么…"
             value={chat}
             onChange={(e) => setChat(e.target.value)}
             onKeyDown={(e) => {

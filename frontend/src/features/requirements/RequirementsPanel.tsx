@@ -111,7 +111,7 @@ export function RequirementsPanel({
           <Empty
             icon={<Layers size={27} />}
             title="还没有要求草稿"
-            text="先添加通知，再让齐呈整理其中的申请要求。"
+            text="先添加通知，再让齐备整理其中的申请要求。"
           />
         ) : (
           item.rule_sets.map((rs) => (

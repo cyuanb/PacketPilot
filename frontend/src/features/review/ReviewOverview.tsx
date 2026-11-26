@@ -261,7 +261,7 @@ export function ReviewOverview({
           </p>
           <button className="secondary full" onClick={() => setTab("chat")}>
             <MessageSquare size={16} />
-            和齐呈一起梳理
+            和齐备一起梳理
           </button>
         </section>
         <section className="panel small-panel">

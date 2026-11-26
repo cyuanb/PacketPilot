@@ -17,7 +17,7 @@ export function LoginPage({ act, setUser, error, busy }: Props) {
             <FileCheck2 />
           </span>
           <strong>
-            齐呈 <small>PacketPilot</small>
+            齐备 <small>PacketPilot</small>
           </strong>
         </div>
         <div>
@@ -30,7 +30,7 @@ export function LoginPage({ act, setUser, error, busy }: Props) {
           <p>
             把通知、材料和待办放在一起。
             <br />
-            齐呈陪你核对细节，补齐每一步。
+            齐备陪你核对细节，补齐每一步。
           </p>
           <div className="login-papers">
             <div>
@@ -52,7 +52,7 @@ export function LoginPage({ act, setUser, error, busy }: Props) {
       <div className="login-form">
         <div>
           <span className="eyebrow">YOUR APPLICATION, TOGETHER</span>
-          <h2>欢迎来到齐呈</h2>
+          <h2>欢迎来到齐备</h2>
           <p>登录你的材料准备工作台</p>
           <form
             onSubmit={(e) => {

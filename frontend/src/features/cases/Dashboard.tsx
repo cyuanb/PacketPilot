@@ -62,7 +62,7 @@ export function Dashboard({
         <div className="welcome-banner">
           <div>
             <span className="mini-label">
-              <Sparkles size={15} /> 齐呈，陪你准备每一步
+              <Sparkles size={15} /> 齐备，陪你准备每一步
             </span>
             <h2>
               少一点遗漏，
@@ -235,7 +235,7 @@ export function Dashboard({
         <Empty
           icon={<FolderOpen size={30} />}
           title={query ? "没有找到匹配的申请" : "从你的第一份申请开始"}
-          text="新建一个申请，或体验合成示例，看看齐呈如何帮助你。"
+          text="新建一个申请，或体验合成示例，看看齐备如何帮助你。"
           action={
             <button className="secondary" onClick={() => setModal("new")}>
               <Plus size={16} />
@@ -246,7 +246,7 @@ export function Dashboard({
       )}
       <div className="dashboard-footer">
         <FileCheck2 size={16} />
-        <span>齐呈帮助你检查准备情况，最终材料仍由你确认。</span>
+        <span>齐备帮助你检查准备情况，最终材料仍由你确认。</span>
         <span>PacketPilot · 0.1.1</span>
       </div>
     </div>

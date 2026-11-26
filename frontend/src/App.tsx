@@ -8,7 +8,7 @@ function SessionGate() {
   if (session.loading)
     return (
       <div className="boot">
-        <LoaderCircle className="spin" /> 正在打开齐呈…
+        <LoaderCircle className="spin" /> 正在打开齐备…
       </div>
     );
   if (!session.user)

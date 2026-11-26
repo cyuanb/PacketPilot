@@ -65,7 +65,7 @@ export function TextSourceDialog({
               />
             </label>
             <p className="hint">
-              齐呈会保留原文，并将每一项检查关联到具体依据。
+              齐备会保留原文，并将每一项检查关联到具体依据。
             </p>
             <div className="dialog-actions">
               <button className="primary" disabled={busy}>
