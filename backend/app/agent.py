@@ -5,12 +5,16 @@ import time
 import httpx
 from sqlalchemy import select
 
+from .application.requirements import save_rules
+from .application.runs import event
 from .config import ROOT, settings
 from .db import SessionLocal
-from .domain import REVIEW_ENGINE_VERSION, review_result, run_checks, verify_evidence
 from .models import Case, Document, Message, Run, ToolCall
+from .review.aggregation import review_result
+from .review.checks import run_checks
+from .review.evidence import verify_evidence
+from .review.version import REVIEW_ENGINE_VERSION
 from .schemas import Finding, Requirement
-from .services import event, save_rules
 
 
 class Cancelled(Exception):

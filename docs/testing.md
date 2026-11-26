@@ -8,6 +8,8 @@ powershell -ExecutionPolicy Bypass -File scripts/check.ps1
 
 检查包括源码凭据检查、Python 静态检查、pytest 与前端构建。数据库集成测试使用独立随机测试 Schema，账号需要相应权限；不会清空应用表。
 
+HTTP 契约测试将完整 OpenAPI 定义与 `backend/tests/fixtures/api-contract.json` 比对，并验证登录会话、静态页面与 API 共存、SSE 游标续传及跨批次事件读取。接口有意变化时，应审查契约差异后更新该文件；不要只为消除测试失败而重新生成。
+
 需要实际模型的流程测试是显式可选操作：
 
 ~~~powershell

@@ -1,0 +1,54 @@
+"""Case projections composed from documents, reports and runs."""
+
+from sqlalchemy import select
+
+from ..models import Message, RuleSet, Run
+from .documents import doc_view, documents_for
+from .reports import checklist
+from .runs import run_view
+
+
+def case_view(db, c, detail=False):
+    result = {
+        "id": c.id,
+        "title": c.title,
+        "institution": c.institution,
+        "kind": c.kind,
+        "deadline": c.deadline,
+        "revision": c.revision,
+        "archived": c.archived,
+        "facts": c.facts,
+        "created_at": c.created_at.isoformat(),
+        "updated_at": c.updated_at.isoformat(),
+        "checklist": checklist(db, c),
+    }
+    if detail:
+        result["documents"] = [doc_view(d, False) for d in documents_for(db, c.id)]
+        result["rule_sets"] = [
+            {"id": r.id, "version": r.version, "status": r.status, "requirements": r.requirements}
+            for r in db.scalars(
+                select(RuleSet).where(RuleSet.case_id == c.id).order_by(RuleSet.version.desc())
+            )
+        ]
+        result["messages"] = [
+            {
+                "id": m.id,
+                "role": m.role,
+                "content": m.content,
+                "created_at": m.created_at.isoformat(),
+                "run_id": m.run_id,
+            }
+            for m in db.scalars(
+                select(Message)
+                .where(Message.case_id == c.id, Message.role.in_(["user", "assistant"]))
+                .order_by(Message.created_at)
+            )
+            if m.content
+        ]
+        result["runs"] = [
+            run_view(r)
+            for r in db.scalars(
+                select(Run).where(Run.case_id == c.id).order_by(Run.created_at.desc()).limit(30)
+            )
+        ]
+    return result

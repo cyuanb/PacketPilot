@@ -6,6 +6,22 @@ The React/TypeScript browser application calls a same-origin FastAPI service. A 
 
 API and Worker share domain services and transactional state. The Agent uses restricted tools; it has no arbitrary shell, filesystem or SQL tool.
 
+## Backend modules
+
+`app.main` assembles the FastAPI application with `create_app()`. API routers are registered before the optional static frontend mount.
+
+| Module | Responsibility |
+| --- | --- |
+| `app.api` | Identity, system, case, document, requirement, run and report endpoints; shared authentication and HTTP boundary handling |
+| `app.application` | Ownership queries, revisions, document projections, requirement persistence, run snapshots, idempotent enqueueing and current reports |
+| `app.review` | Pure applicability evaluation, evidence anchoring, field coverage, material matching, deterministic checks and readiness aggregation |
+| `app.agent` / `app.worker` | Restricted model tools and durable job execution |
+| `app.models` / `app.db` | Persistence models and database sessions |
+
+Review modules depend on shared schemas and other review modules, without database, HTTP or model-service access. API routes own request transactions; application services are also used by the worker and agent. `app.domain` and `app.services` preserve their existing import names as compatibility facades.
+
+Each SSE polling iteration opens a short-lived session through `app.db.SessionLocal`; it does not reuse the request session for long-lived streaming. Authentication and case ownership are checked before the stream opens.
+
 ## Documents and review
 
 Materials and requirement sets are versioned. Each review has an input snapshot. Updating materials or confirmed facts invalidates earlier findings. User confirmation is separate from machine verification.

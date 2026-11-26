@@ -3,9 +3,10 @@
 import hashlib
 from datetime import date, timedelta
 
-from .domain import review_result, run_checks
+from .application.runs import event, snapshot
 from .models import Case, Document, RuleSet, Run
-from .services import event, snapshot
+from .review.aggregation import review_result
+from .review.checks import run_checks
 
 NOTICE = """青禾大学 · 秋季交流项目（产品演示用虚构通知）
 本示例只用于体验材料预检，不对应真实院校要求。
