@@ -3,7 +3,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
-from .api import cases, documents, identity, reports, requirements, runs, system
+from .api import cases, documents, identity, reports, requirements, runs, subjects, system
 from .api.identity import login_attempts as login_attempts
 from .api.middleware import http_error, request_boundary
 from .config import ROOT
@@ -22,6 +22,7 @@ def create_app():
         requirements.router,
         runs.router,
         reports.router,
+        subjects.router,
     ):
         app.include_router(router)
     dist = ROOT / "frontend" / "dist"

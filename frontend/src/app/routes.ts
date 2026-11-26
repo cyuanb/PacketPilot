@@ -10,6 +10,7 @@ export type WorkspaceRoute = {
   selected: string | null;
   tab: Tab;
   archive: boolean;
+  subjects?: boolean;
 };
 const home: WorkspaceRoute = {
   selected: null,
@@ -19,6 +20,7 @@ const home: WorkspaceRoute = {
 const casePath = /^#(?:case\/|\/cases\/)([0-9a-f-]{36})(?:\/([^/]+))?\/?$/i;
 
 export function parseRoute(hash: string): WorkspaceRoute {
+  if (hash === "#/subjects") return { ...home, subjects: true };
   if (hash === "#/archive") return { ...home, archive: true };
   const match = hash.match(casePath);
   if (!match) return { ...home };
@@ -30,6 +32,7 @@ export function parseRoute(hash: string): WorkspaceRoute {
 }
 
 export function routeHash(route: WorkspaceRoute) {
+  if (route.subjects && !route.selected) return "#/subjects";
   return route.selected
     ? `#/cases/${route.selected}/${route.tab}`
     : route.archive

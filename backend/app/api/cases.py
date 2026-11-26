@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 
 from ..application.cases import bump, case_for, expect_revision
 from ..application.views import case_view
+from ..application.workspaces import personal_workspace
 from ..config import settings
 from ..db import get_db
-from ..models import Audit, Case, Document
+from ..models import Audit, Case, Document, Membership, Workspace
 from ..schemas import CaseInput, FactInput
 from .dependencies import current_user
 from .requests import CaseUpdate
@@ -20,13 +21,25 @@ router = APIRouter()
 def list_cases(user=Depends(current_user), db: Session = Depends(get_db)):
     return [
         case_view(db, c)
-        for c in db.scalars(select(Case).where(Case.owner_id == user.id).order_by(Case.updated_at.desc()))
+        for c in db.scalars(
+            select(Case)
+            .join(Workspace, Workspace.id == Case.workspace_id)
+            .join(Membership, Membership.workspace_id == Workspace.id)
+            .where(
+                Case.owner_id == user.id,
+                Workspace.owner_id == user.id,
+                Membership.user_id == user.id,
+                Membership.role == "owner",
+            )
+            .order_by(Case.updated_at.desc())
+        )
     ]
 
 
 @router.post("/api/v1/cases", status_code=201)
 def create_case(body: CaseInput, user=Depends(current_user), db: Session = Depends(get_db)):
-    c = Case(owner_id=user.id, **body.model_dump())
+    workspace = personal_workspace(db, user.id)
+    c = Case(owner_id=user.id, workspace_id=workspace.id, **body.model_dump())
     db.add(c)
     db.commit()
     return case_view(db, c, True)

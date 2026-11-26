@@ -1,3 +1,5 @@
+import type { CaseSubject } from "../features/subjects/types";
+
 export type Evidence = { document_id: string; page: number; quote: string };
 export type Requirement = {
   id: string;
@@ -68,6 +70,8 @@ export type Run = {
   };
 };
 export type Case = {
+  workspace_id: string;
+  subjects?: CaseSubject[];
   id: string;
   title: string;
   institution: string;

@@ -18,7 +18,11 @@ import { RequirementsEditor } from "../features/requirements/RequirementsEditor"
 import { AttestationDialog } from "../features/review/AttestationDialog";
 import { SettingsDialog } from "../features/settings/SettingsDialog";
 import { useWorkspace, type WorkspaceOptions } from "./useWorkspace";
+import { useResource } from "./useResource";
+import { SubjectsPage } from "../features/subjects/SubjectsPage";
+import type { WorkspaceInfo } from "../features/subjects/types";
 export function Workspace(options: WorkspaceOptions) {
+  const workspace = useResource<WorkspaceInfo>(options.client, "/workspace");
   const {
     requirements,
     item,
@@ -97,6 +101,9 @@ export function Workspace(options: WorkspaceOptions) {
   return (
     <div className="app-shell">
       <Sidebar
+        workspace={workspace.data}
+        showSubjects={!!options.navigation.subjects}
+        goSubjects={options.navigation.goSubjects}
         setSelected={setSelected}
         selected={selected}
         archive={archive}
@@ -114,7 +121,13 @@ export function Workspace(options: WorkspaceOptions) {
           <div>
             <span>工作空间</span>
             <ChevronRight size={14} />
-            <strong>{selected ? item?.title || "正在加载" : "我的申请"}</strong>
+            <strong>
+              {options.navigation.subjects
+                ? "主体档案"
+                : selected
+                  ? item?.title || "正在加载"
+                  : "我的申请"}
+            </strong>
           </div>
           <span className="topbar-note">
             <ShieldCheck size={15} /> 材料准备，由你掌控
@@ -143,7 +156,9 @@ export function Workspace(options: WorkspaceOptions) {
             )}
           </div>
         )}
-        {!selected ? (
+        {options.navigation.subjects ? (
+          <SubjectsPage client={options.client} />
+        ) : !selected ? (
           <Dashboard
             archive={archive}
             setModal={setModal}

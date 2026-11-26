@@ -10,6 +10,7 @@ from ..db import now
 from ..models import Message, RuleSet, Run, RunEvent
 from .cases import case_for, expect_revision
 from .documents import doc_view, documents_for
+from .subjects import case_subjects
 
 
 def snapshot(db, case):
@@ -19,6 +20,8 @@ def snapshot(db, case):
     valid_rules = bool(rules and set(rules.source_ids).issubset(source_ids))
     return {
         "case_id": case.id,
+        "workspace_id": case.workspace_id,
+        "subjects": case_subjects(db, case),
         "title": case.title,
         "revision": case.revision,
         "deadline": case.deadline,

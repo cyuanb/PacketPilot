@@ -23,3 +23,19 @@ API 与 Worker 必须同时运行。开发模式下 Vite 默认使用 5173，并
 API 文档位于 /api/docs。运行日志位于 data/runtime；日志不是需要提交的项目文件。
 
 连接失败时分别检查数据库端口、模型可达性、Worker 状态和对应日志。不要将完整凭据或原件粘贴到公共问题反馈中。
+
+## 更新已有安装
+
+更新代码前备份应用数据库与私有文件。停止 API 和 Worker 后，运行数据库迁移并重新构建前端，再启动服务：
+
+~~~powershell
+.\scripts\stop.ps1
+git pull --ff-only
+.\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini upgrade head
+nvm use PacketPilot
+npm ci --prefix frontend
+npm run build --prefix frontend
+.\scripts\start.ps1
+~~~
+
+工作空间迁移会按原所有者回填已有事项，不创建推测的申请人档案。已有主体或修改过的工作空间信息时，直接降级会被拒绝，避免静默丢失新增数据；需要回退时应使用迁移前的数据库与文件备份。

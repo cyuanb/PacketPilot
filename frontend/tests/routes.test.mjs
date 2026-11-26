@@ -21,3 +21,10 @@ test("invalid routes and tabs have safe fallbacks", () => {
   assert.equal(parseRoute("#/cases/" + id + "/missing-tab").tab, "overview");
   assert.equal(parseRoute("#case/" + id + "/overview/extra").selected, null);
 });
+
+test("subject directory has a reloadable route distinct from case lists", () => {
+  const route = parseRoute("#/subjects");
+  assert.equal(route.subjects, true);
+  assert.equal(route.selected, null);
+  assert.equal(routeHash(route), "#/subjects");
+});

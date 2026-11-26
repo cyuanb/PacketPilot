@@ -94,6 +94,17 @@ export class QueryClient {
     this.publish(entry, { data, pending: false });
   }
 
+  invalidate(prefix: string) {
+    for (const [key, entry] of this.entries) {
+      if (!key.startsWith(prefix)) continue;
+      ++entry.generation;
+      entry.controller?.abort();
+      entry.promise = undefined;
+      entry.controller = undefined;
+      this.publish(entry, { pending: false });
+    }
+  }
+
   clear() {
     for (const entry of this.entries.values()) {
       ++entry.generation;

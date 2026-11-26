@@ -6,11 +6,13 @@ from ..models import Message, RuleSet, Run
 from .documents import doc_view, documents_for
 from .reports import checklist
 from .runs import run_view
+from .subjects import case_subjects
 
 
 def case_view(db, c, detail=False):
     result = {
         "id": c.id,
+        "workspace_id": c.workspace_id,
         "title": c.title,
         "institution": c.institution,
         "kind": c.kind,
@@ -23,6 +25,7 @@ def case_view(db, c, detail=False):
         "checklist": checklist(db, c),
     }
     if detail:
+        result["subjects"] = case_subjects(db, c)
         result["documents"] = [doc_view(d, False) for d in documents_for(db, c.id)]
         result["rule_sets"] = [
             {"id": r.id, "version": r.version, "status": r.status, "requirements": r.requirements}

@@ -1,6 +1,6 @@
 import {
   Archive,
-  ChevronDown,
+  UsersRound,
   FileCheck2,
   FileText,
   LayoutGrid,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api, post } from "../api";
 import type { WorkspaceState } from "./useWorkspace";
+import type { WorkspaceInfo } from "../features/subjects/types";
 type Props = Pick<
   WorkspaceState,
   | "setSelected"
@@ -24,7 +25,11 @@ type Props = Pick<
   | "user"
   | "setUser"
   | "goHome"
->;
+> & {
+  showSubjects: boolean;
+  goSubjects: () => void;
+  workspace?: WorkspaceInfo;
+};
 export function Sidebar({
   setSelected,
   selected,
@@ -37,6 +42,9 @@ export function Sidebar({
   user,
   setUser,
   goHome,
+  showSubjects,
+  goSubjects,
+  workspace,
 }: Props) {
   return (
     <aside className="sidebar">
@@ -53,12 +61,10 @@ export function Sidebar({
           齐备<small>PacketPilot</small>
         </strong>
       </button>
-      <div className="workspace-label">
-        个人工作空间 <ChevronDown size={14} />
-      </div>
+      <div className="workspace-label">{workspace?.name || "个人工作空间"}</div>
       <nav>
         <button
-          className={!selected && !archive ? "active" : ""}
+          className={!selected && !archive && !showSubjects ? "active" : ""}
           onClick={() => {
             goHome(false);
           }}
@@ -74,6 +80,14 @@ export function Sidebar({
         >
           <Archive size={19} />
           已归档
+        </button>
+        <button
+          className={showSubjects ? "active" : ""}
+          onClick={goSubjects}
+          aria-label="主体档案"
+        >
+          <UsersRound size={19} />
+          主体档案
         </button>
       </nav>
       <div className="sidebar-section">

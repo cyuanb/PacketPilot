@@ -21,7 +21,14 @@ export function AuthenticatedWorkspace({
   useEffect(() => () => client.clear(), [client]);
   return (
     <Workspace
-      key={navigation.selected || (navigation.archive ? "archive" : "home")}
+      key={
+        navigation.selected ||
+        (navigation.subjects
+          ? "subjects"
+          : navigation.archive
+            ? "archive"
+            : "home")
+      }
       navigation={navigation}
       client={client}
       user={user}

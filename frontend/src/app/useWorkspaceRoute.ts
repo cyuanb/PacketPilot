@@ -37,6 +37,16 @@ export function useWorkspaceRoute() {
     (tab: Tab) => navigate({ ...route, tab }),
     [route, navigate],
   );
-  return { ...route, goHome, openCase, setTab };
+  const goSubjects = useCallback(
+    () =>
+      navigate({
+        selected: null,
+        tab: "overview",
+        archive: false,
+        subjects: true,
+      }),
+    [navigate],
+  );
+  return { ...route, goHome, openCase, setTab, goSubjects };
 }
 export type WorkspaceNavigation = ReturnType<typeof useWorkspaceRoute>;

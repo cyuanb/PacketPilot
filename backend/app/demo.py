@@ -4,6 +4,7 @@ import hashlib
 from datetime import date, timedelta
 
 from .application.runs import event, snapshot
+from .application.workspaces import personal_workspace
 from .models import Case, Document, RuleSet, Run
 from .review.aggregation import review_result
 from .review.checks import run_checks
@@ -19,8 +20,10 @@ NOTICE = """青禾大学 · 秋季交流项目（产品演示用虚构通知）
 
 
 def create_demo(db, owner_id):
+    workspace = personal_workspace(db, owner_id)
     c = Case(
         owner_id=owner_id,
+        workspace_id=workspace.id,
         title="秋季校际交流申请",
         institution="青禾大学 · 合成示例",
         deadline=(date.today() + timedelta(days=21)).isoformat(),

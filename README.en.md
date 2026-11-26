@@ -4,6 +4,8 @@ An open-source, self-hosted document preflight workspace. Current version: 0.1.1
 
 Import a notice, review extracted requirements, upload documents, inspect evidence-backed findings, amend materials, and export a checklist.
 
+Manage distinct person and organization profiles in an owner-controlled workspace, then associate applicants, recommenders and representatives with a case. Names do not merge identities; profile changes mark linked cases for review. Profile attributes do not automatically become confirmed case facts, and subject-aware field comparison is not yet implemented.
+
 [中文说明](README.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md) · [Testing](docs/testing.md)
 
 ## Local setup

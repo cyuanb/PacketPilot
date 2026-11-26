@@ -89,3 +89,17 @@ test("a mutation response supersedes an in-flight detail read", async () => {
   await old;
   assert.equal(client.snapshot("/cases/a").data.revision, 3);
 });
+
+test("profile changes invalidate case details and fence old snapshots without clearing other queries", async () => {
+  const client = new QueryClient(), slow = deferred();
+  client.set("/workspace", { name: "Workspace" });
+  client.set("/cases/a", { revision: 1 });
+  const old = client.fetch("/cases/a", () => slow.promise);
+  client.invalidate("/cases/");
+  slow.resolve({ revision: 1 });
+  await old;
+  assert.equal(client.snapshot("/cases/a").data, undefined);
+  assert.equal(client.snapshot("/workspace").data.name, "Workspace");
+  await client.fetch("/cases/a", async () => ({ revision: 2 }));
+  assert.equal(client.snapshot("/cases/a").data.revision, 2);
+});

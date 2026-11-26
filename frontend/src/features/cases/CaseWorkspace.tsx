@@ -23,6 +23,7 @@ import { RequirementsPanel } from "../requirements/RequirementsPanel";
 import { ReviewOverview } from "../review/ReviewOverview";
 import { HistoryPanel } from "../runs/HistoryPanel";
 import { kinds } from "./constants";
+import { CaseSubjectsPanel } from "../subjects/CaseSubjectsPanel";
 type Props = Pick<
   WorkspaceState,
   | "setSelected"
@@ -178,6 +179,7 @@ export function CaseWorkspace({
           </button>
         </div>
       </div>
+      <CaseSubjectsPanel item={item} onChanged={refresh} />
       <div className="workspace-tabs">
         {(
           [

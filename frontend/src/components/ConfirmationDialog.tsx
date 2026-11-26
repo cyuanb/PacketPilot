@@ -22,7 +22,11 @@ export function ConfirmationDialog({
         >
           <p>{confirm.text}</p>
           <div className="dialog-actions">
-            <button className="secondary" disabled={busy} onClick={() => setConfirm(null)}>
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() => setConfirm(null)}
+            >
               取消
             </button>
             <button

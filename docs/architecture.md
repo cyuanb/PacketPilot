@@ -55,6 +55,12 @@ Cancellation is cooperative. An inference request may finish before cancellation
 
 ## Access and storage
 
+Each account owns one workspace and an owner membership. Cases retain their original owner and carry a workspace ID. Subject profiles have independent IDs, a fixed person/organization kind and an optimistic revision; names are not unique identity keys. Case-subject roles use composite foreign keys so a case and its linked profile must belong to the same workspace. Owner and membership checks apply to case access, including documents, runs and event streams through their owning case.
+
+Workspace provisioning serializes on the account row. Profile and role mutations serialize on the workspace, then lock affected cases in a stable order. Editing a linked profile bumps those case revisions; earlier run snapshots retain their original subject identities. Contact attributes are stored in profiles and are not automatically included in model context or confirmed case facts.
+
+Migration `0002` creates owner workspaces and memberships and backfills existing cases without inferring applicant identities. Existing document contents, versions and run snapshots are preserved. A rollback refuses to silently discard profiles or edited workspace names.
+
 Cookie sessions are HttpOnly and SameSite Strict. Resources are authorized through their owning case. Upload filenames do not become storage paths. Runtime configuration is never sent to the browser.
 
 Parser subprocesses have time and output limits, but are not a hardened sandbox. External deployment requires an appropriate TLS and access configuration.

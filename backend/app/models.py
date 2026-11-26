@@ -1,6 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,6 +35,7 @@ class Case(Base):
     __tablename__ = "cases"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
     owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True)
     title: Mapped[str] = mapped_column(String(200))
     institution: Mapped[str] = mapped_column(String(200), default="")
     kind: Mapped[str] = mapped_column(String(50), default="exchange")
@@ -37,6 +48,78 @@ class Case(Base):
     facts: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        UniqueConstraint("id", "workspace_id", name="uq_cases_workspace"),
+        ForeignKeyConstraint(
+            ["workspace_id", "owner_id"],
+            ["workspaces.id", "workspaces.owner_id"],
+            name="fk_cases_workspace_owner",
+        ),
+    )
+
+
+class Workspace(Base):
+    __tablename__ = "workspaces"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True)
+    name: Mapped[str] = mapped_column(String(100), default="个人工作空间")
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (UniqueConstraint("id", "owner_id", name="uq_workspace_owner"),)
+
+
+class Membership(Base):
+    __tablename__ = "memberships"
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role: Mapped[str] = mapped_column(String(20), default="owner")
+    __table_args__ = (CheckConstraint("role = 'owner'", name="ck_membership_owner_only"),)
+
+
+class SubjectProfile(Base):
+    __tablename__ = "subject_profiles"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(200))
+    label: Mapped[str] = mapped_column(String(200), default="")
+    attributes: Mapped[dict] = mapped_column(JSONB, default=dict)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        UniqueConstraint("id", "workspace_id", name="uq_subject_workspace"),
+        CheckConstraint("kind IN ('person', 'organization')", name="ck_subject_kind"),
+    )
+
+
+class CaseSubjectRole(Base):
+    __tablename__ = "case_subject_roles"
+    case_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    subject_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    role: Mapped[str] = mapped_column(String(30), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["case_id", "workspace_id"],
+            ["cases.id", "cases.workspace_id"],
+            ondelete="CASCADE",
+            name="fk_role_case_workspace",
+        ),
+        ForeignKeyConstraint(
+            ["subject_id", "workspace_id"],
+            ["subject_profiles.id", "subject_profiles.workspace_id"],
+            name="fk_role_subject_workspace",
+        ),
+        CheckConstraint(
+            "role IN ('applicant', 'recommender', 'representative', 'organization', 'contact', 'other')",
+            name="ck_subject_role",
+        ),
+    )
 
 
 class Document(Base):
