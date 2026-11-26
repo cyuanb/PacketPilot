@@ -1987,6 +1987,10 @@ select {
   }
 }
 @media (max-width: 700px) {
+  .heading-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
   .sidebar {
     width: 66px;
     padding: 22px 7px 12px;

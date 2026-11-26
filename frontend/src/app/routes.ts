@@ -1,0 +1,38 @@
+export const tabs = [
+  "overview",
+  "documents",
+  "rules",
+  "chat",
+  "history",
+] as const;
+export type Tab = (typeof tabs)[number];
+export type WorkspaceRoute = {
+  selected: string | null;
+  tab: Tab;
+  archive: boolean;
+};
+const home: WorkspaceRoute = {
+  selected: null,
+  tab: "overview",
+  archive: false,
+};
+const casePath = /^#(?:case\/|\/cases\/)([0-9a-f-]{36})(?:\/([^/]+))?\/?$/i;
+
+export function parseRoute(hash: string): WorkspaceRoute {
+  if (hash === "#/archive") return { ...home, archive: true };
+  const match = hash.match(casePath);
+  if (!match) return { ...home };
+  return {
+    selected: match[1],
+    tab: tabs.includes(match[2] as Tab) ? (match[2] as Tab) : "overview",
+    archive: false,
+  };
+}
+
+export function routeHash(route: WorkspaceRoute) {
+  return route.selected
+    ? `#/cases/${route.selected}/${route.tab}`
+    : route.archive
+      ? "#/archive"
+      : "#/cases";
+}

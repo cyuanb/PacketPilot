@@ -10,4 +10,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Lint failed.' }
 & $python -m pytest -q
 if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
 Push-Location frontend
-try { npm run build; if ($LASTEXITCODE -ne 0) { throw 'Build failed.' } } finally { Pop-Location }
+try {
+    npm test
+    if ($LASTEXITCODE -ne 0) { throw 'Frontend tests failed.' }
+    npm run build
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+} finally { Pop-Location }

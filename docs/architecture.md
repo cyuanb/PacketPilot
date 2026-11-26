@@ -22,6 +22,25 @@ Review modules depend on shared schemas and other review modules, without databa
 
 Each SSE polling iteration opens a short-lived session through `app.db.SessionLocal`; it does not reuse the request session for long-lived streaming. Authentication and case ownership are checked before the stream opens.
 
+## Frontend modules and state
+
+`App.tsx` handles startup, the session gate and the render error boundary. `app/AuthenticatedWorkspace` owns a session-local query cache and notifications. Its child workspace is keyed by the selected case (or list view), so switching cases releases subscriptions and resets dialogs and drafts. Tabs within the same case preserve that case's editing state.
+
+| Module | Responsibility |
+| --- | --- |
+| `api/client.ts`, `api/types.ts` | Same-origin HTTP transport and response types |
+| `app/routes.ts`, `app/useWorkspaceRoute.ts` | Explicit URL parsing and browser history synchronization |
+| `app/queryClient.ts` | Resource-keyed cache, request deduplication, cancellation and fencing of superseded responses |
+| `app/useWorkspace.ts`, `app/useEditors.ts` | Workspace action coordination and scoped editing state |
+| `features/cases`, `documents`, `requirements`, `review`, `chat`, `runs`, `settings`, `identity` | Feature views, editors and specialized hooks |
+| `components` | Shared dialogs, status badges, empty views and the render error boundary |
+
+Routes use `#/cases`, `#/archive`, and `#/cases/{id}/{tab}`. Tabs are `overview`, `documents`, `rules`, `chat` and `history`. Existing `#case/{id}` links normalize to the overview route without adding a history entry. User navigation adds history entries, allowing back/forward navigation and refresh to restore the selected view.
+
+Mutations force fresh list/detail reads or publish their returned case revision. Superseded responses cannot overwrite newer cached data. Logout clears the session cache. Run subscriptions clean up EventSource connections and polling timers when a view leaves; a terminal event forces a fresh read to supersede an earlier poll. These browser mechanisms supplement server-side ownership and revision checks.
+
+Request failures stay visible with retry controls or within the active editor. Unexpected rendering failures show a reload action; they do not delete stored materials or cancel background work.
+
 ## Documents and review
 
 Materials and requirement sets are versioned. Each review has an input snapshot. Updating materials or confirmed facts invalidates earlier findings. User confirmation is separate from machine verification.
