@@ -30,6 +30,7 @@ jobs:
           sudo -u postgres createdb packetpilot_ci
       - run: pip install -r backend/requirements.txt
       - run: python scripts/check_secrets.py
+      - run: python scripts/check_public_content.py
       - run: python -m alembic -c backend/alembic.ini upgrade head
       - run: python -m ruff check backend
       - run: python -m pytest -q

@@ -3,6 +3,8 @@ Set-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 $python = '.\.venv\Scripts\python.exe'
 & $python scripts/check_secrets.py
 if ($LASTEXITCODE -ne 0) { throw 'Credential scan failed.' }
+& $python scripts/check_public_content.py
+if ($LASTEXITCODE -ne 0) { throw 'Public documentation policy failed.' }
 & $python -m ruff check backend
 if ($LASTEXITCODE -ne 0) { throw 'Lint failed.' }
 & $python -m pytest -q
