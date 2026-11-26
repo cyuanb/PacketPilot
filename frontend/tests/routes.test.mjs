@@ -28,3 +28,14 @@ test("subject directory has a reloadable route distinct from case lists", () => 
   assert.equal(route.selected, null);
   assert.equal(routeHash(route), "#/subjects");
 });
+
+test("library, inbox and individual assets have independent deep links", () => {
+  assert.equal(parseRoute("#/library").library, "all");
+  assert.equal(parseRoute("#/inbox").library, "inbox");
+  const route = parseRoute("#/library/" + id);
+  assert.equal(route.assetId, id);
+  assert.equal(route.selected, null);
+  assert.equal(routeHash(route), "#/library/" + id);
+  assert.equal(routeHash(parseRoute("#/inbox")), "#/inbox");
+  assert.equal(parseRoute("#/library/not-an-id").assetId, undefined);
+});

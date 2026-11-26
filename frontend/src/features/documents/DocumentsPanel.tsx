@@ -110,10 +110,10 @@ export function DocumentsPanel({
             </button>
             <button
               className="icon-button danger"
-              aria-label={"删除" + d.title}
+              aria-label={"从事项移除" + d.title}
               onClick={() =>
                 setConfirm({
-                  text: "删除此材料的所有版本及受影响的历史检查？此操作不可撤销。",
+                  text: "从事项移除此材料的所有版本及受影响的检查记录？资料中心仍保留原件和版本。",
                   action: async () => {
                     await api("/documents/" + d.id, {
                       method: "DELETE",

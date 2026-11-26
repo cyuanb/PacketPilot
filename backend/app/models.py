@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -126,6 +127,9 @@ class Document(Base):
     __tablename__ = "document_versions"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
     case_id: Mapped[str] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    asset_revision_id: Mapped[str | None] = mapped_column(
+        ForeignKey("asset_revisions.id"), nullable=True, index=True
+    )
     logical_id: Mapped[str] = mapped_column(String(36), default=uid, index=True)
     version: Mapped[int] = mapped_column(Integer, default=1)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -228,3 +232,70 @@ class Audit(Base):
     action: Mapped[str] = mapped_column(String(80))
     data: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Asset(Base):
+    __tablename__ = "assets"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)
+    subject_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    legacy_logical_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    title: Mapped[str] = mapped_column(String(250))
+    category: Mapped[str] = mapped_column(String(100), default="")
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        UniqueConstraint("id", "workspace_id", name="uq_asset_workspace"),
+        UniqueConstraint("workspace_id", "legacy_logical_id", name="uq_asset_legacy"),
+        ForeignKeyConstraint(
+            ["subject_id", "workspace_id"],
+            ["subject_profiles.id", "subject_profiles.workspace_id"],
+            name="fk_asset_subject_workspace",
+        ),
+    )
+
+
+class Blob(Base):
+    __tablename__ = "blobs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)
+    storage_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    inline_content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    size: Mapped[int] = mapped_column(Integer)
+    mime: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        UniqueConstraint("id", "workspace_id", name="uq_blob_workspace"),
+        UniqueConstraint("workspace_id", "storage_key", name="uq_blob_storage"),
+        CheckConstraint("size >= 0", name="ck_blob_size"),
+        CheckConstraint("storage_key IS NULL OR inline_content IS NULL", name="ck_blob_storage_kind"),
+    )
+
+
+class AssetRevision(Base):
+    __tablename__ = "asset_revisions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True)
+    asset_id: Mapped[str] = mapped_column(String(36), index=True)
+    blob_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    filename: Mapped[str] = mapped_column(String(250))
+    origin: Mapped[str] = mapped_column(String(30), default="upload")
+    text_snapshot: Mapped[list] = mapped_column(JSONB, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        UniqueConstraint("asset_id", "version", name="uq_asset_version"),
+        ForeignKeyConstraint(
+            ["asset_id", "workspace_id"],
+            ["assets.id", "assets.workspace_id"],
+            ondelete="CASCADE",
+            name="fk_revision_asset_workspace",
+        ),
+        ForeignKeyConstraint(
+            ["blob_id", "workspace_id"], ["blobs.id", "blobs.workspace_id"], name="fk_revision_blob_workspace"
+        ),
+        CheckConstraint("version > 0", name="ck_asset_version"),
+    )

@@ -3,6 +3,7 @@
 import hashlib
 from datetime import date, timedelta
 
+from .application.assets import capture_document
 from .application.runs import event, snapshot
 from .application.workspaces import personal_workspace
 from .models import Case, Document, RuleSet, Run
@@ -55,6 +56,8 @@ def create_demo(db, owner_id):
         db.add(d)
         docs.append(d)
     db.flush()
+    for document in docs:
+        capture_document(db, c, document)
     definitions = [
         ("r1", "申请表", "material_presence", "申请表", "必须提供申请表。", {}),
         ("r2", "成绩单", "material_presence", "成绩单", "必须提供成绩单。", {}),

@@ -47,6 +47,16 @@ export function useWorkspaceRoute() {
       }),
     [navigate],
   );
-  return { ...route, goHome, openCase, setTab, goSubjects };
+  const goLibrary = useCallback(
+    (inbox = false) =>
+      navigate({
+        selected: null,
+        tab: "overview",
+        archive: false,
+        library: inbox ? "inbox" : "all",
+      }),
+    [navigate],
+  );
+  return { ...route, goHome, openCase, setTab, goSubjects, goLibrary };
 }
 export type WorkspaceNavigation = ReturnType<typeof useWorkspaceRoute>;

@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..application.assets import remove_unretained_files
 from ..application.cases import bump, case_for, expect_revision
 from ..application.views import case_view
 from ..application.workspaces import personal_workspace
-from ..config import settings
 from ..db import get_db
 from ..models import Audit, Case, Document, Membership, Workspace
 from ..schemas import CaseInput, FactInput
@@ -67,9 +67,7 @@ def delete_case(case_id: str, user=Depends(current_user), db: Session = Depends(
     keys = list(db.scalars(select(Document.storage_key).where(Document.case_id == c.id)))
     db.delete(c)
     db.commit()
-    for key in keys:
-        if key:
-            (settings.storage / key).unlink(missing_ok=True)
+    remove_unretained_files(db, keys)
     return {"ok": True}
 
 

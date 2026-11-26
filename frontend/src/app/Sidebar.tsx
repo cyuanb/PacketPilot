@@ -3,6 +3,8 @@ import {
   UsersRound,
   FileCheck2,
   FileText,
+  FolderOpen,
+  Inbox,
   LayoutGrid,
   LogOut,
   Plus,
@@ -29,6 +31,8 @@ type Props = Pick<
   showSubjects: boolean;
   goSubjects: () => void;
   workspace?: WorkspaceInfo;
+  library?: "all" | "inbox";
+  goLibrary: (inbox?: boolean) => void;
 };
 export function Sidebar({
   setSelected,
@@ -45,6 +49,8 @@ export function Sidebar({
   showSubjects,
   goSubjects,
   workspace,
+  library,
+  goLibrary,
 }: Props) {
   return (
     <aside className="sidebar">
@@ -64,7 +70,9 @@ export function Sidebar({
       <div className="workspace-label">{workspace?.name || "个人工作空间"}</div>
       <nav>
         <button
-          className={!selected && !archive && !showSubjects ? "active" : ""}
+          className={
+            !selected && !archive && !showSubjects && !library ? "active" : ""
+          }
           onClick={() => {
             goHome(false);
           }}
@@ -88,6 +96,22 @@ export function Sidebar({
         >
           <UsersRound size={19} />
           主体档案
+        </button>
+        <button
+          className={library === "all" ? "active" : ""}
+          onClick={() => goLibrary()}
+          aria-label="资料中心"
+        >
+          <FolderOpen size={19} />
+          资料中心
+        </button>
+        <button
+          className={library === "inbox" ? "active" : ""}
+          onClick={() => goLibrary(true)}
+          aria-label="收集箱"
+        >
+          <Inbox size={19} />
+          收集箱
         </button>
       </nav>
       <div className="sidebar-section">

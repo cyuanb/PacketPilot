@@ -41,6 +41,18 @@ Mutations force fresh list/detail reads or publish their returned case revision.
 
 Request failures stay visible with retry controls or within the active editor. Unexpected rendering failures show a reload action; they do not delete stored materials or cancel background work.
 
+## Independent document library
+
+Assets belong to a workspace and may have a subject; assets without a subject form the inbox. Asset metadata has an optimistic revision, while each asset revision captures its own filename, original blob and optional text snapshot. Blob hashes identify original bytes, not the identity of an applicant or the meaning of corrected text. Equal hashes and sizes produce workspace-scoped duplicate hints without suppressing a submission.
+
+Asset and blob ownership are protected by composite foreign keys. PostgreSQL triggers reject updates to persisted blobs and asset revisions. Application writes append versions under an asset lock; stale metadata or version requests are rejected. Upload failures roll back database changes and remove the staged file.
+
+Library listings, version catalogs and usage queries defer original bytes and text snapshots; full content is loaded only for an explicit preview or download. Cleanup checks database persistence after a failed commit so a lost acknowledgement cannot delete an already committed original. If persistence cannot be confirmed, the file is retained for recovery.
+
+Migration `0003` groups existing document versions by workspace and logical material, preserving their identifiers, original hashes and text snapshots. Pasted originals are reconstructed only when their bytes match the recorded hash and size. An unavailable original is not fabricated from corrected text. Contradictory metadata for a shared file aborts the migration. The migration performs no file moves or rewrites and refuses a downgrade that would discard library data.
+
+Case documents retain an explicit compatibility pointer to their captured asset revision. Existing case uploads and corrections append library records in the same transaction. Case parsing still updates its own derived text; library snapshots are not overwritten by the parser. Removing a case/document retains files referenced by library blobs. Library metadata and version updates do not update case inputs or their revision counters. Explicit cross-case reuse and version selection are not yet exposed.
+
 ## Documents and review
 
 Materials and requirement sets are versioned. Each review has an input snapshot. Updating materials or confirmed facts invalidates earlier findings. User confirmation is separate from machine verification.

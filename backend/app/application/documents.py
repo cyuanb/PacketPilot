@@ -10,6 +10,7 @@ from .cases import case_for
 def doc_view(d, include_text=True):
     return {
         "id": d.id,
+        "asset_revision_id": d.asset_revision_id,
         "logical_id": d.logical_id,
         "version": d.version,
         "title": d.title,

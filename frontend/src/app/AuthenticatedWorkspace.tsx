@@ -23,6 +23,8 @@ export function AuthenticatedWorkspace({
     <Workspace
       key={
         navigation.selected ||
+        navigation.assetId ||
+        (navigation.library ? "library-" + navigation.library : undefined) ||
         (navigation.subjects
           ? "subjects"
           : navigation.archive

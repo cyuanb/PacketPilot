@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from .. import __version__
 from ..config import settings
 from ..db import get_db
 from ..parsing import MIMES
@@ -16,7 +17,7 @@ def health(db: Session = Depends(get_db)):
     from sqlalchemy import text
 
     db.execute(text("SELECT 1"))
-    return {"status": "ok", "version": "0.1.1"}
+    return {"status": "ok", "version": __version__}
 
 
 @router.get("/api/v1/capabilities")

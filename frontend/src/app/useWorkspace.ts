@@ -160,12 +160,19 @@ export function useWorkspace({
     data.append("file", file);
     data.append("purpose", uploadPurpose.current);
     data.append("replace_id", replaceId.current);
-    await api("/cases/" + item.id + "/documents", {
-      method: "POST",
-      body: data,
-    });
+    const result = await api<{ duplicates?: unknown[] }>(
+      "/cases/" + item.id + "/documents",
+      {
+        method: "POST",
+        body: data,
+      },
+    );
     await refresh();
-    setNotice("材料已接收，正在读取");
+    setNotice(
+      result.duplicates?.length
+        ? "材料已接收，正在读取；资料中心存在相同原件，本次版本仍独立保存。"
+        : "材料已接收，正在读取",
+    );
   };
   const newExample = async () => {
     const c = await post<Case>("/demo");

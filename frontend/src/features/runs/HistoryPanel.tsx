@@ -90,12 +90,14 @@ export function HistoryPanel({
         </details>
       ))}
       <div className="panel-footer">
-        <span className="muted">删除申请会清除全部材料和历史。</span>
+        <span className="muted">
+          删除申请会清除事项关联和历史，资料中心保留原件。
+        </span>
         <button
           className="text-action danger"
           onClick={() =>
             setConfirm({
-              text: "永久删除此申请、全部材料、对话与历史？此操作不可撤销。",
+              text: "永久删除此申请的材料关联、对话与历史？资料中心仍保留原件和版本。事项记录删除后不可撤销。",
               action: async () => {
                 await api("/cases/" + item.id, { method: "DELETE" });
                 setSelected(null);

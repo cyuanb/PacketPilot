@@ -16,6 +16,12 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..application.assets import (
+    capture_document,
+    discard_uncommitted_file,
+    duplicate_versions,
+    remove_unretained_files,
+)
 from ..application.cases import bump, case_for, expect_revision
 from ..application.documents import doc_view, document_for, documents_for
 from ..application.runs import enqueue
@@ -47,6 +53,7 @@ def text_source(case_id: str, body: TextInput, user=Depends(current_user), db: S
         parse_method="pasted",
     )
     db.add(d)
+    capture_document(db, c, d)
     bump(db, c, "document.added")
     db.commit()
     return doc_view(d)
@@ -100,13 +107,20 @@ async def upload(
             previous.active = False
             d.logical_id, d.version = previous.logical_id, previous.version + 1
         db.add(d)
+        capture_document(db, c, d, previous)
         bump(db, c, "document.replaced" if previous else "document.added")
         db.flush()
         task, _ = enqueue(db, c, "parse", {"document_id": d.id})
+        duplicates = [
+            match
+            for match in duplicate_versions(db, c.workspace_id, d.sha256, d.size)
+            if match["revision_id"] != d.asset_revision_id
+        ]
+        result = {"document": doc_view(d), "run_id": task.id, "duplicates": duplicates}
         db.commit()
-        return {"document": doc_view(d), "run_id": task.id}
+        return result
     except Exception:
-        path.unlink(missing_ok=True)
+        discard_uncommitted_file(db, path)
         raise
 
 
@@ -159,6 +173,7 @@ def correction(doc_id: str, body: CorrectionInput, user=Depends(current_user), d
         pages=[{"number": 1, "label": "人工校订文本", "text": body.text}],
     )
     db.add(d)
+    capture_document(db, c, d, old)
     bump(db, c, "document.corrected")
     db.commit()
     return doc_view(d)
@@ -168,7 +183,9 @@ def correction(doc_id: str, body: CorrectionInput, user=Depends(current_user), d
 def delete_document(doc_id: str, user=Depends(current_user), db: Session = Depends(get_db)):
     d = document_for(db, user, doc_id)
     c = case_for(db, user.id, d.case_id, True)
-    versions = list(db.scalars(select(Document).where(Document.logical_id == d.logical_id)))
+    versions = list(
+        db.scalars(select(Document).where(Document.logical_id == d.logical_id, Document.case_id == c.id))
+    )
     ids = {v.id for v in versions}
     keys = {v.storage_key for v in versions if v.storage_key}
     # Removing original evidence also removes affected historical check snapshots and message traces.
@@ -187,6 +204,5 @@ def delete_document(doc_id: str, user=Depends(current_user), db: Session = Depen
         db.delete(v)
     bump(db, c, "document.deleted")
     db.commit()
-    for key in keys:
-        (settings.storage / key).unlink(missing_ok=True)
+    remove_unretained_files(db, keys)
     return {"ok": True}

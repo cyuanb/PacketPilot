@@ -21,6 +21,8 @@ import { useWorkspace, type WorkspaceOptions } from "./useWorkspace";
 import { useResource } from "./useResource";
 import { SubjectsPage } from "../features/subjects/SubjectsPage";
 import type { WorkspaceInfo } from "../features/subjects/types";
+import { LibraryPage } from "../features/library/LibraryPage";
+import { LibraryDetail } from "../features/library/LibraryDetail";
 export function Workspace(options: WorkspaceOptions) {
   const workspace = useResource<WorkspaceInfo>(options.client, "/workspace");
   const {
@@ -101,6 +103,8 @@ export function Workspace(options: WorkspaceOptions) {
   return (
     <div className="app-shell">
       <Sidebar
+        library={options.navigation.library}
+        goLibrary={options.navigation.goLibrary}
         workspace={workspace.data}
         showSubjects={!!options.navigation.subjects}
         goSubjects={options.navigation.goSubjects}
@@ -122,11 +126,17 @@ export function Workspace(options: WorkspaceOptions) {
             <span>工作空间</span>
             <ChevronRight size={14} />
             <strong>
-              {options.navigation.subjects
-                ? "主体档案"
-                : selected
-                  ? item?.title || "正在加载"
-                  : "我的申请"}
+              {options.navigation.library
+                ? options.navigation.assetId
+                  ? "资料详情"
+                  : options.navigation.library === "inbox"
+                    ? "收集箱"
+                    : "资料中心"
+                : options.navigation.subjects
+                  ? "主体档案"
+                  : selected
+                    ? item?.title || "正在加载"
+                    : "我的申请"}
             </strong>
           </div>
           <span className="topbar-note">
@@ -156,7 +166,19 @@ export function Workspace(options: WorkspaceOptions) {
             )}
           </div>
         )}
-        {options.navigation.subjects ? (
+        {options.navigation.library ? (
+          options.navigation.assetId ? (
+            <LibraryDetail
+              id={options.navigation.assetId}
+              client={options.client}
+            />
+          ) : (
+            <LibraryPage
+              client={options.client}
+              inbox={options.navigation.library === "inbox"}
+            />
+          )
+        ) : options.navigation.subjects ? (
           <SubjectsPage client={options.client} />
         ) : !selected ? (
           <Dashboard

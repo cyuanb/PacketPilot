@@ -56,7 +56,7 @@ def test_legacy_backfill_preserves_cases_documents_and_runs(migration_database):
         for name in ("cases", "document_versions", "runs")
     }
     connection.commit()
-    command.upgrade(config, "head")
+    command.upgrade(config, "0002")
     spaces = connection.execute(text("SELECT id, owner_id FROM workspaces ORDER BY owner_id")).all()
     assert len(spaces) == 2 and spaces[0].id != spaces[1].id
     assert connection.scalar(text("SELECT count(*) FROM memberships")) == 2
@@ -84,13 +84,13 @@ def test_legacy_backfill_preserves_cases_documents_and_runs(migration_database):
         == before["cases"]
     )
     connection.commit()
-    command.upgrade(config, "head")
+    command.upgrade(config, "0002")
     assert connection.scalar(text("SELECT count(*) FROM cases WHERE workspace_id IS NULL")) == 0
 
 
 def test_new_install_and_rollback_refuse_to_drop_profiles(migration_database):
     config, connection = migration_database
-    command.upgrade(config, "head")
+    command.upgrade(config, "0002")
     connection.execute(text("INSERT INTO users VALUES ('owner','owner','synthetic')"))
     connection.execute(
         text("INSERT INTO workspaces VALUES ('space','owner','Space',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)")
