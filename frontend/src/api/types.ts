@@ -1,3 +1,4 @@
+import type { Scenario, DocumentLink } from "../features/workflow/types";
 import type { CaseSubject } from "../features/subjects/types";
 
 export type Evidence = { document_id: string; page: number; quote: string };
@@ -36,6 +37,7 @@ export type Finding = {
   }[];
 };
 export type Doc = {
+  asset_revision_id?: string | null;
   id: string;
   logical_id: string;
   version: number;
@@ -70,6 +72,8 @@ export type Run = {
   };
 };
 export type Case = {
+  scenario?: Scenario | null;
+  document_links?: DocumentLink[];
   workspace_id: string;
   subjects?: CaseSubject[];
   id: string;

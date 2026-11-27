@@ -63,7 +63,7 @@ def test_backfill_preserves_hashes_original_text_corrections_and_case_rows(migra
     )
     case_before = connection.scalar(text("SELECT to_jsonb(c) FROM cases c"))
     connection.commit()
-    command.upgrade(config, "head")
+    command.upgrade(config, "0003")
     assert (
         connection.execute(
             text("SELECT to_jsonb(d) - 'asset_revision_id' FROM document_versions d ORDER BY id")
@@ -109,7 +109,7 @@ def test_unrecoverable_inline_original_is_not_fabricated(migration_database):
         method="user_corrected",
     )
     connection.commit()
-    command.upgrade(config, "head")
+    command.upgrade(config, "0003")
     assert connection.scalar(text("SELECT inline_content FROM blobs")) is None
     assert connection.scalar(text("SELECT sha256 FROM blobs")) == "unknown-original-hash"
     assert connection.scalar(text("SELECT text_snapshot FROM asset_revisions"))[0]["text"] == "校订内容"
@@ -122,7 +122,7 @@ def test_conflicting_shared_original_metadata_aborts_backfill(migration_database
     document(connection, "b", "logical", 2, "new", "different-hash", 3, key="same.txt")
     connection.commit()
     with pytest.raises(RuntimeError, match="Conflicting legacy metadata"):
-        command.upgrade(config, "head")
+        command.upgrade(config, "0003")
     connection.rollback()
     assert "asset_revision_id" not in {
         column["name"] for column in inspect(connection).get_columns("document_versions")
@@ -132,9 +132,9 @@ def test_conflicting_shared_original_metadata_aborts_backfill(migration_database
 
 def test_empty_install_can_round_trip_library_migration(migration_database):
     config, connection = migration_database
-    command.upgrade(config, "head")
+    command.upgrade(config, "0003")
     command.downgrade(config, "0002")
     assert not inspect(connection).has_table("assets")
     connection.commit()
-    command.upgrade(config, "head")
+    command.upgrade(config, "0003")
     assert inspect(connection).has_table("assets")

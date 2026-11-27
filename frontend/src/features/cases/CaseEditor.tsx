@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import type { Scenario } from "../workflow/types";
 import { api, post, type Case } from "../../api";
 import type { WorkspaceState } from "../../app/useWorkspace";
 import { Dialog } from "../../components/Dialog";
@@ -29,6 +31,25 @@ export function CaseEditor({
   setItem,
   busy,
 }: Props) {
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [scenarioId, setScenarioId] = useState("");
+  const [scenarioError, setScenarioError] = useState("");
+  useEffect(() => {
+    if (modal !== "new") return;
+    setScenarioId("");
+    setDraftCase({ title: "", institution: "", kind: "other", deadline: "" });
+    setScenarioError("");
+    const controller = new AbortController();
+    api<Scenario[]>("/scenarios", { signal: controller.signal })
+      .then((value) => {
+        if (!controller.signal.aborted) setScenarios(value);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) setScenarioError(error.message);
+      });
+    return () => controller.abort();
+  }, [modal]);
+  const scenario = scenarios.find((value) => value.id === scenarioId);
   return (
     <>
       {(modal === "new" || modal === "edit") && (
@@ -52,12 +73,15 @@ export function CaseEditor({
                           archived: item.archived,
                         }),
                       })
-                    : await post<Case>("/cases", draftCase);
+                    : await post<Case>("/cases", {
+                        ...draftCase,
+                        scenario_id: scenarioId || null,
+                      });
                 setModal("");
                 setDraftCase({
                   title: "",
                   institution: "",
-                  kind: "exchange",
+                  kind: "other",
                   deadline: "",
                 });
                 await loadCases();
@@ -71,11 +95,60 @@ export function CaseEditor({
                 ? "修改后会提示重新核对，确保检查与当前申请信息一致。"
                 : "先记下申请目标，材料可以慢慢补齐。"}
             </p>
+            {modal === "new" && (
+              <div className="scenario-selector">
+                <label>
+                  事项场景
+                  <select
+                    value={scenarioId}
+                    onChange={(event) => {
+                      setScenarioId(event.target.value);
+                      const config = scenarios.find(
+                        (value) => value.id === event.target.value,
+                      );
+                      setDraftCase({
+                        ...draftCase,
+                        kind: config?.kind || "other",
+                      });
+                    }}
+                  >
+                    <option value="">通用材料事项</option>
+                    {scenarios.map((config) => (
+                      <option key={config.id} value={config.id}>
+                        {config.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {scenario && (
+                  <>
+                    <p>{scenario.description}</p>
+                    <small>{scenario.notice}</small>
+                  </>
+                )}
+                {scenarioError && (
+                  <p role="alert">
+                    场景配置未读取：{scenarioError}
+                    。仍可创建通用事项，或重新打开此窗口。
+                  </p>
+                )}
+              </div>
+            )}
+            {modal === "edit" && item?.scenario && (
+              <p className="hint">
+                场景：{item.scenario.title} · 起步配置 v{item.scenario.version}
+                （场景快照保持原样）
+              </p>
+            )}
             <label>
               申请名称
               <input
                 required
-                placeholder="例如：秋季校际交流申请"
+                placeholder={
+                  scenario
+                    ? `例如：${scenario.title} · 本次目标`
+                    : "例如：项目申请、入职或客户准入材料"
+                }
                 value={draftCase.title}
                 onChange={(e) =>
                   setDraftCase({ ...draftCase, title: e.target.value })
@@ -83,9 +156,9 @@ export function CaseEditor({
               />
             </label>
             <label>
-              申请机构
+              接收方/机构
               <input
-                placeholder="学校、组织或项目名称"
+                placeholder="学校、单位、客户或平台名称"
                 value={draftCase.institution}
                 onChange={(e) =>
                   setDraftCase({ ...draftCase, institution: e.target.value })
@@ -96,6 +169,9 @@ export function CaseEditor({
               <label>
                 申请类型
                 <select
+                  disabled={
+                    !!scenarioId || !!(modal === "edit" && item?.scenario)
+                  }
                   value={draftCase.kind}
                   onChange={(e) =>
                     setDraftCase({ ...draftCase, kind: e.target.value })

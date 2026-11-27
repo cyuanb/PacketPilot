@@ -83,7 +83,9 @@ export function FactsDialog({
                 act(async () => {
                   await post("/cases/" + item.id + "/facts/confirm", {
                     revision: item.revision,
-                    facts: Object.fromEntries(facts.filter(([k]) => k.trim())),
+                    facts: Object.fromEntries(
+                      facts.filter(([k, v]) => k.trim() && v.trim()),
+                    ),
                   });
                   setModal("");
                   await refresh();

@@ -10,6 +10,8 @@ from sqlalchemy import or_, select
 
 from .agent import Cancelled, locked_run, run_agent
 from .application.cases import bump
+from .application.issues import synchronize_issues
+from .application.reports import checklist
 from .application.runs import event
 from .config import ROOT, settings
 from .db import SessionLocal, now
@@ -119,6 +121,13 @@ def process(run_id, fence, kind):
                         case.current_check_id = r.id
                 else:
                     r.result = {**r.result, "stale": True}
+            if (
+                r.result.get("findings")
+                and case.current_check_id == r.id
+                and case.revision == r.revision
+                and checklist(db, case)["can_export"]
+            ):
+                synchronize_issues(db, case)
             event(db, r.id, "run.completed", {"status": r.status})
     except Cancelled:
         with SessionLocal.begin() as db:

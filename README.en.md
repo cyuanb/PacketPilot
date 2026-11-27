@@ -1,12 +1,14 @@
 # PacketPilot
 
-An open-source, self-hosted document preflight workspace. Current version: 0.2.0.
+An open-source, self-hosted document preflight workspace. Current version: 0.3.0.
 
 Import a notice, review extracted requirements, upload documents, inspect evidence-backed findings, amend materials, and export a checklist.
 
 Manage distinct person and organization profiles in an owner-controlled workspace, then associate applicants, recommenders and representatives with a case. Names do not merge identities; profile changes mark linked cases for review. Profile attributes do not automatically become confirmed case facts, and subject-aware field comparison is not yet implemented.
 
-The independent document library accepts uploads before a case exists. Organize an inbox by subject and category, inspect original files and immutable versions, see exact-file duplicate hints, and follow case usage links. Library updates never silently replace case materials. Removing a case or its materials retains library originals. Archiving is available; permanent library deletion and selecting library versions for reuse in cases are not yet available.
+The independent document library accepts uploads before a case exists. Organize an inbox by subject and category, inspect originals and immutable versions, and pin a selected revision to each case. Updates require an explicit choice per case. Removing case materials retains library originals; permanent library deletion is not yet available.
+
+Starter workflows cover education exchange, job applications, onboarding, business entry and supplier intake. They suggest roles and context, not official requirements. A source-backed form creates requirement drafts; a model-free check preserves unknown semantic findings. Issues track requested/submitted amendments, resolve only from current checks or valid manual attestations, and reopen when rechecks find a problem. Exceptions never change the check verdict.
 
 [中文说明](README.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md) · [Testing](docs/testing.md)
 

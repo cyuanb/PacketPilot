@@ -198,14 +198,21 @@ def next_version(db, asset):
 
 def capture_document(db, case, document, previous=None):
     """Capture original bytes and any existing text without renumbering case documents."""
+    from .library_links import ensure_link
+
     db.flush()
     if document.asset_revision_id:
+        ensure_link(db, case, document)
         return
-    asset = db.scalar(
-        select(Asset)
-        .where(Asset.workspace_id == case.workspace_id, Asset.legacy_logical_id == document.logical_id)
-        .with_for_update()
-    )
+    if previous and previous.asset_revision_id:
+        previous_revision = db.get(AssetRevision, previous.asset_revision_id)
+        asset = asset_for(db, case.workspace_id, previous_revision.asset_id, True)
+    else:
+        asset = db.scalar(
+            select(Asset)
+            .where(Asset.workspace_id == case.workspace_id, Asset.legacy_logical_id == document.logical_id)
+            .with_for_update()
+        )
     if not asset:
         asset = Asset(
             workspace_id=case.workspace_id,
@@ -264,6 +271,8 @@ def capture_document(db, case, document, previous=None):
     db.add(revision)
     db.flush()
     document.asset_revision_id = revision.id
+    db.flush()
+    ensure_link(db, case, document)
 
 
 def remove_unretained_files(db, keys):

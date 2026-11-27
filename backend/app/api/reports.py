@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from ..application.cases import case_for, expect_revision
+from ..application.issues import synchronize_issues
 from ..application.reports import checklist
 from ..db import get_db
 from ..models import Attestation, Audit
@@ -26,6 +27,8 @@ def attest(case_id: str, body: AttestationInput, user=Depends(current_user), db:
         raise HTTPException(422, "仅可对当前版本的人工检查项确认")
     db.add(Attestation(case_id=c.id, revision=c.revision, requirement_id=body.requirement_id, note=body.note))
     db.add(Audit(case_id=c.id, action="manual.confirmed", data={"requirement_id": body.requirement_id}))
+    db.flush()
+    synchronize_issues(db, c)
     db.commit()
     return checklist(db, c)
 

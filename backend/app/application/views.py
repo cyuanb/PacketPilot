@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from ..models import Message, RuleSet, Run
 from .documents import doc_view, documents_for
+from .library_links import linked_documents
 from .reports import checklist
 from .runs import run_view
 from .subjects import case_subjects
@@ -16,6 +17,7 @@ def case_view(db, c, detail=False):
         "title": c.title,
         "institution": c.institution,
         "kind": c.kind,
+        "scenario": c.scenario_snapshot or None,
         "deadline": c.deadline,
         "revision": c.revision,
         "archived": c.archived,
@@ -25,6 +27,7 @@ def case_view(db, c, detail=False):
         "checklist": checklist(db, c),
     }
     if detail:
+        result["document_links"] = linked_documents(db, c)
         result["subjects"] = case_subjects(db, c)
         result["documents"] = [doc_view(d, False) for d in documents_for(db, c.id)]
         result["rule_sets"] = [

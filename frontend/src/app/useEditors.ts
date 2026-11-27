@@ -10,7 +10,7 @@ export function useEditors() {
   const [draftCase, setDraftCase] = useState({
     title: "",
     institution: "",
-    kind: "exchange",
+    kind: "other",
     deadline: "",
   });
   const [preview, setPreview] = useState<Doc | null>(null),

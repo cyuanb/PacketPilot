@@ -64,6 +64,7 @@ class Finding(StrictModel):
 
 
 class CaseInput(StrictModel):
+    scenario_id: str | None = Field(default=None, max_length=80)
     title: str = Field(min_length=1, max_length=200)
     institution: str = Field(default="", max_length=200)
     kind: str = Field(default="exchange", max_length=50)

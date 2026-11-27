@@ -1,3 +1,5 @@
+import { CaseGuide } from "../workflow/CaseGuide";
+import { IssuesPanel } from "../workflow/IssuesPanel";
 import {
   Archive,
   BookOpen,
@@ -175,15 +177,22 @@ export function CaseWorkspace({
             ) : (
               <Sparkles size={17} />
             )}{" "}
-            {running ? "正在处理" : "重新预检"}
+            {running ? "正在处理" : "AI 预检"}
           </button>
         </div>
       </div>
+      <CaseGuide
+        item={item}
+        setTab={setTab}
+        refresh={refresh}
+        openFacts={openFacts}
+      />
       <CaseSubjectsPanel item={item} onChanged={refresh} />
       <div className="workspace-tabs">
         {(
           [
             ["overview", "检查概览", ListChecks],
+            ["issues", "问题与补件", CircleAlert],
             ["documents", "材料库", FolderOpen],
             ["rules", "申请要求", BookOpen],
             ["chat", "对话助手", MessageSquare],
@@ -272,8 +281,12 @@ export function CaseWorkspace({
           openFacts={openFacts}
         />
       )}
+      {tab === "issues" && (
+        <IssuesPanel item={item} refresh={refresh} setTab={setTab} />
+      )}
       {tab === "documents" && (
         <DocumentsPanel
+          item={item}
           busy={busy}
           pickUpload={pickUpload}
           act={act}

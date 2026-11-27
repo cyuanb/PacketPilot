@@ -23,6 +23,14 @@ function RoleEditor({
   close: () => void;
   saved: () => Promise<void>;
 }) {
+  const scenarioLabels = Object.fromEntries(
+    (item.scenario?.roles || []).map((role) => [role.role, role.label]),
+  );
+  const validRole = (kind: SubjectKind, role: SubjectRole) =>
+    allowsRole(kind, role) &&
+    (role !== "applicant" ||
+      !item.scenario ||
+      kind === item.scenario.primary_subject_kind);
   const [links, setLinks] = useState(
     (item.subjects || []).map((s) => ({
       subject_id: s.subject_id,
@@ -118,7 +126,7 @@ function RoleEditor({
                           subject_id: id,
                           role:
                             choices[id] &&
-                            allowsRole(choices[id].kind, value.role)
+                            validRole(choices[id].kind, value.role)
                               ? value.role
                               : "applicant",
                         }
@@ -138,7 +146,10 @@ function RoleEditor({
                   <option
                     key={s.id}
                     value={s.id}
-                    disabled={s.archived && s.id !== link.subject_id}
+                    disabled={
+                      (s.archived && s.id !== link.subject_id) ||
+                      !validRole(s.kind, link.role)
+                    }
                   >
                     {subjectCaption(s)}
                     {s.archived ? "（已归档）" : ""}
@@ -166,13 +177,13 @@ function RoleEditor({
                   value={role}
                   disabled={
                     !!choices[link.subject_id] &&
-                    !allowsRole(
+                    !validRole(
                       choices[link.subject_id].kind,
                       role as SubjectRole,
                     )
                   }
                 >
-                  {label}
+                  {scenarioLabels[role] || label}
                 </option>
               ))}
             </select>
@@ -253,7 +264,10 @@ export function CaseSubjectsPanel({
         <ul className="case-subject-list">
           {item.subjects.map((s) => (
             <li key={s.subject_id + s.role}>
-              <strong>{roleLabels[s.role]}</strong>
+              <strong>
+                {item.scenario?.roles.find((role) => role.role === s.role)
+                  ?.label || roleLabels[s.role]}
+              </strong>
               <span>
                 {s.name} · {kindLabels[s.kind]}
                 {s.label ? " · " + s.label : ""} · {s.subject_id.slice(0, 8)}

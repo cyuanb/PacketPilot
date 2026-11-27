@@ -99,6 +99,9 @@ def replace_case_subjects(db, case, body):
         raise HTTPException(422, "同一主体与角色不能重复添加")
     for subject_id, role in proposed:
         subject = subject_for(db, case.workspace_id, subject_id)
+        expected_kind = case.scenario_snapshot.get("primary_subject_kind")
+        if role == "applicant" and expected_kind and subject.kind != expected_kind:
+            raise HTTPException(422, "申请主体类型与当前场景不符，请选择对应的个人或组织档案")
         if subject.archived and (subject_id, role) not in existing:
             raise HTTPException(409, "已归档主体不能新增关联，请先恢复档案")
         if (role in {"recommender", "representative", "contact"} and subject.kind != "person") or (
@@ -116,3 +119,12 @@ def replace_case_subjects(db, case, body):
     )
     bump(db, case, "subjects.changed", {"links": [link.model_dump() for link in body.links]})
     db.flush()
+
+
+def require_scenario_subject(db, case):
+    if case.scenario_snapshot and not db.scalar(
+        select(CaseSubjectRole.subject_id)
+        .where(CaseSubjectRole.case_id == case.id, CaseSubjectRole.role == "applicant")
+        .limit(1)
+    ):
+        raise HTTPException(422, "请先在事项主体中关联本场景的申请主体")

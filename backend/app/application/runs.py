@@ -10,7 +10,7 @@ from ..db import now
 from ..models import Message, RuleSet, Run, RunEvent
 from .cases import case_for, expect_revision
 from .documents import doc_view, documents_for
-from .subjects import case_subjects
+from .subjects import case_subjects, require_scenario_subject
 
 
 def snapshot(db, case):
@@ -23,6 +23,7 @@ def snapshot(db, case):
         "workspace_id": case.workspace_id,
         "subjects": case_subjects(db, case),
         "title": case.title,
+        "scenario": case.scenario_snapshot,
         "revision": case.revision,
         "deadline": case.deadline,
         "reference_date": now().astimezone().date().isoformat(),
@@ -97,6 +98,7 @@ def start_run(db, user, case_id, kind, revision, payload, key):
     if kind == "check" and not c.active_rules_id:
         raise HTTPException(422, "请先启用一版申请要求")
     if kind == "check":
+        require_scenario_subject(db, c)
         if not snapshot(db, c)["requirements"]:
             raise HTTPException(409, "通知来源已变化，请重新提取并启用要求")
     if kind == "extract" and not any(

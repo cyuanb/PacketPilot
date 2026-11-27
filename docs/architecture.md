@@ -51,7 +51,15 @@ Library listings, version catalogs and usage queries defer original bytes and te
 
 Migration `0003` groups existing document versions by workspace and logical material, preserving their identifiers, original hashes and text snapshots. Pasted originals are reconstructed only when their bytes match the recorded hash and size. An unavailable original is not fabricated from corrected text. Contradictory metadata for a shared file aborts the migration. The migration performs no file moves or rewrites and refuses a downgrade that would discard library data.
 
-Case documents retain an explicit compatibility pointer to their captured asset revision. Existing case uploads and corrections append library records in the same transaction. Case parsing still updates its own derived text; library snapshots are not overwritten by the parser. Removing a case/document retains files referenced by library blobs. Library metadata and version updates do not update case inputs or their revision counters. Explicit cross-case reuse and version selection are not yet exposed.
+CaseDocumentLink pins each case-local document version to an asset revision. Composite foreign keys enforce case, document, revision and workspace agreement. Migration `0004` backfills these links without changing existing inputs. Selecting another revision creates a new case document version; accepting an update affects only that case. Corrections append to the linked asset while other cases retain their previous selections.
+
+Case parsing updates its own derived text; library snapshots remain immutable. Removing a case/document retains library originals. Library metadata and version updates do not automatically change case inputs. Original downloads use the pinned blob even when the case displays corrected text.
+
+## Scenario and amendment workflow
+
+Five declarative starter scenarios provide roles, background fields, material suggestions and stages. A case snapshots the chosen configuration at creation. These suggestions are not requirements: enabled rules must cite case-owned source documents. Existing cases remain generic; migration does not infer a scenario or applicant identity.
+
+The explicit rules-only check completes deterministic checks without a model call and leaves semantic findings unknown. Both current complete background checks and rules-only checks synchronize issues. Issues are keyed by case and requirement, with optimistic revisions and an event history. Resolution depends on current complete findings, non-applicability or a version-bound manual attestation. Workflow actions cannot set resolved directly or alter verdicts. Rechecks can reopen issues; exceptions are bound to the current check and do not modify readiness. Incomplete/stale checks never close issues.
 
 ## Documents and review
 

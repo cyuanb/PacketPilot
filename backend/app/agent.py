@@ -281,6 +281,7 @@ def run_agent(run_id, fence):
             "date_constraint 使用 field 与 not_before(YYYY-MM-DD)，日期规则不明确就用 semantic_requirement。"
             "condition 为空或 {field,op:eq/ne/in,value}，支持 all/any 子条件数组。"
             "保存草稿后提示用户审阅启用。不要自动激活规则。"
+            "scenario 仅为通用起步配置，materials 和 roles 是建议，不是正式要求。仅按用户提供的来源和已启用 requirements 核对。"
             "检查输出描述范围、问题、依据和下一步。不得宣称官方审核通过。"
             "用户事实变更先 propose_facts；未知条件通过 ask_user。"
             "引用在正文可写「材料名·第N页」，不要编造引用编号。\n\n" + skill

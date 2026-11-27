@@ -10,6 +10,7 @@ from ..application.views import case_view
 from ..application.workspaces import personal_workspace
 from ..db import get_db
 from ..models import Audit, Case, Document, Membership, Workspace
+from ..scenarios import scenario_snapshot
 from ..schemas import CaseInput, FactInput
 from .dependencies import current_user
 from .requests import CaseUpdate
@@ -39,7 +40,11 @@ def list_cases(user=Depends(current_user), db: Session = Depends(get_db)):
 @router.post("/api/v1/cases", status_code=201)
 def create_case(body: CaseInput, user=Depends(current_user), db: Session = Depends(get_db)):
     workspace = personal_workspace(db, user.id)
-    c = Case(owner_id=user.id, workspace_id=workspace.id, **body.model_dump())
+    scenario = scenario_snapshot(body.scenario_id)
+    values = body.model_dump(exclude={"scenario_id"})
+    if scenario:
+        values["kind"] = scenario["kind"]
+    c = Case(owner_id=user.id, workspace_id=workspace.id, scenario_snapshot=scenario, **values)
     db.add(c)
     db.commit()
     return case_view(db, c, True)
@@ -54,7 +59,14 @@ def get_case(case_id: str, user=Depends(current_user), db: Session = Depends(get
 def update_case(case_id: str, body: CaseUpdate, user=Depends(current_user), db: Session = Depends(get_db)):
     c = case_for(db, user.id, case_id, True)
     expect_revision(c, body.revision)
-    for k, v in body.model_dump(exclude={"revision"}).items():
+    if body.scenario_id is not None and body.scenario_id != c.scenario_snapshot.get("id"):
+        raise HTTPException(422, "场景快照在创建时固定，不能通过编辑事项替换")
+    if c.scenario_snapshot and "kind" in body.model_fields_set and body.kind != c.scenario_snapshot["kind"]:
+        raise HTTPException(422, "事项类型由已选择的场景确定")
+    values = body.model_dump(exclude={"revision", "scenario_id"})
+    if c.scenario_snapshot:
+        values["kind"] = c.scenario_snapshot["kind"]
+    for k, v in values.items():
         setattr(c, k, v)
     bump(db, c, "case.updated")
     db.commit()

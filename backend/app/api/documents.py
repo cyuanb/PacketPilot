@@ -13,21 +13,19 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.responses import FileResponse
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..application.assets import (
     capture_document,
     discard_uncommitted_file,
     duplicate_versions,
-    remove_unretained_files,
 )
 from ..application.cases import bump, case_for, expect_revision
-from ..application.documents import doc_view, document_for, documents_for
+from ..application.documents import doc_view, document_for, documents_for, remove_case_material
 from ..application.runs import enqueue
 from ..config import settings
 from ..db import get_db, uid
-from ..models import Document, RuleSet, Run
+from ..models import Document
 from ..parsing import MIMES
 from ..schemas import TextInput
 from .dependencies import current_user
@@ -132,6 +130,10 @@ def document_detail(doc_id: str, user=Depends(current_user), db: Session = Depen
 @router.get("/api/v1/documents/{doc_id}/content")
 def document_content(doc_id: str, user=Depends(current_user), db: Session = Depends(get_db)):
     d = document_for(db, user, doc_id)
+    if d.asset_revision_id:
+        from .assets import get_asset_content
+
+        return get_asset_content(d.asset_revision_id, user, db)
     if not d.storage_key:
         return Response("\n\n".join(p["text"] for p in d.pages), media_type="text/plain")
     path = settings.storage / d.storage_key
@@ -181,28 +183,4 @@ def correction(doc_id: str, body: CorrectionInput, user=Depends(current_user), d
 
 @router.delete("/api/v1/documents/{doc_id}")
 def delete_document(doc_id: str, user=Depends(current_user), db: Session = Depends(get_db)):
-    d = document_for(db, user, doc_id)
-    c = case_for(db, user.id, d.case_id, True)
-    versions = list(
-        db.scalars(select(Document).where(Document.logical_id == d.logical_id, Document.case_id == c.id))
-    )
-    ids = {v.id for v in versions}
-    keys = {v.storage_key for v in versions if v.storage_key}
-    # Removing original evidence also removes affected historical check snapshots and message traces.
-    runs = list(db.scalars(select(Run).where(Run.case_id == c.id)))
-    for r in runs:
-        if any(x["id"] in ids for x in r.snapshot.get("documents", [])):
-            if c.current_check_id == r.id:
-                c.current_check_id = None
-            db.delete(r)
-    for rules in db.scalars(select(RuleSet).where(RuleSet.case_id == c.id)):
-        if ids.intersection(rules.source_ids):
-            rules.status = "source_removed"
-            if c.active_rules_id == rules.id:
-                c.active_rules_id = None
-    for v in versions:
-        db.delete(v)
-    bump(db, c, "document.deleted")
-    db.commit()
-    remove_unretained_files(db, keys)
-    return {"ok": True}
+    return remove_case_material(db, user, doc_id)

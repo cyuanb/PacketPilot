@@ -1,0 +1,45 @@
+export type Scenario = {
+  id: string;
+  version: string;
+  kind: string;
+  family: string;
+  title: string;
+  description: string;
+  primary_subject_kind: "person" | "organization";
+  roles: { role: string; label: string }[];
+  facts: string[];
+  materials: string[];
+  stages: string[];
+  support_level: string;
+  notice: string;
+};
+export type DocumentLink = {
+  document_id: string;
+  asset_id: string;
+  asset_title: string;
+  asset_revision_id: string;
+  version: number;
+  latest_version: number;
+  update_available: boolean;
+  archived: boolean;
+  purpose: string;
+  category: string;
+  parse_status: string;
+};
+export type Issue = {
+  id: string;
+  requirement_id: string;
+  title: string;
+  required: boolean;
+  status: string;
+  verdict: string;
+  reason: string;
+  next_action: string;
+  revision: number;
+  checked_revision: number;
+  run_id: string;
+  note: string;
+  stale: boolean;
+  updated_at: string;
+};
+export type IssueList = { can_sync: boolean; items: Issue[] };

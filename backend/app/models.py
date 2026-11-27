@@ -47,6 +47,7 @@ class Case(Base):
     active_rules_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     current_check_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     facts: Mapped[dict] = mapped_column(JSONB, default=dict)
+    scenario_snapshot: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     __table_args__ = (
@@ -146,7 +147,11 @@ class Document(Base):
     parse_note: Mapped[str] = mapped_column(Text, default="")
     parse_method: Mapped[str] = mapped_column(String(40), default="native")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    __table_args__ = (UniqueConstraint("logical_id", "version"),)
+    __table_args__ = (
+        UniqueConstraint("logical_id", "version"),
+        UniqueConstraint("id", "case_id", name="uq_document_case"),
+        UniqueConstraint("id", "asset_revision_id", name="uq_document_asset_revision"),
+    )
 
 
 class RuleSet(Base):
@@ -288,6 +293,7 @@ class AssetRevision(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     __table_args__ = (
         UniqueConstraint("asset_id", "version", name="uq_asset_version"),
+        UniqueConstraint("id", "workspace_id", name="uq_revision_workspace"),
         ForeignKeyConstraint(
             ["asset_id", "workspace_id"],
             ["assets.id", "assets.workspace_id"],
@@ -299,3 +305,75 @@ class AssetRevision(Base):
         ),
         CheckConstraint("version > 0", name="ck_asset_version"),
     )
+
+
+class CaseDocumentLink(Base):
+    __tablename__ = "case_document_links"
+    document_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    case_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str] = mapped_column(String(36))
+    asset_revision_id: Mapped[str] = mapped_column(String(36), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["document_id", "case_id"],
+            ["document_versions.id", "document_versions.case_id"],
+            ondelete="CASCADE",
+            name="fk_link_document_case",
+        ),
+        ForeignKeyConstraint(
+            ["document_id", "asset_revision_id"],
+            ["document_versions.id", "document_versions.asset_revision_id"],
+            ondelete="CASCADE",
+            name="fk_link_document_revision",
+        ),
+        ForeignKeyConstraint(
+            ["case_id", "workspace_id"],
+            ["cases.id", "cases.workspace_id"],
+            ondelete="CASCADE",
+            name="fk_link_case_workspace",
+        ),
+        ForeignKeyConstraint(
+            ["asset_revision_id", "workspace_id"],
+            ["asset_revisions.id", "asset_revisions.workspace_id"],
+            name="fk_link_revision_workspace",
+        ),
+    )
+
+
+class Issue(Base):
+    __tablename__ = "issues"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    requirement_id: Mapped[str] = mapped_column(String(100))
+    rule_fingerprint: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(200))
+    required: Mapped[bool] = mapped_column(Boolean)
+    status: Mapped[str] = mapped_column(String(30), default="open")
+    verdict: Mapped[str] = mapped_column(String(30))
+    reason: Mapped[str] = mapped_column(Text)
+    next_action: Mapped[str] = mapped_column(Text, default="")
+    run_id: Mapped[str] = mapped_column(String(36))
+    checked_revision: Mapped[int] = mapped_column(Integer)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        UniqueConstraint("case_id", "requirement_id", name="uq_case_issue"),
+        CheckConstraint(
+            "status IN ('open','requested','submitted','resolved','exception','retired')",
+            name="ck_issue_status",
+        ),
+    )
+
+
+class IssueEvent(Base):
+    __tablename__ = "issue_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    issue_id: Mapped[str] = mapped_column(ForeignKey("issues.id", ondelete="CASCADE"), index=True)
+    action: Mapped[str] = mapped_column(String(50))
+    note: Mapped[str] = mapped_column(Text, default="")
+    case_revision: Mapped[int] = mapped_column(Integer)
+    run_id: Mapped[str] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
