@@ -201,3 +201,19 @@ def test_permanent_purge_blocks_case_references(client):
         ).status_code
         == 409
     )
+
+
+def test_backup_restores_file_bytes_with_new_storage_keys(client):
+    c = case(client)
+    raw = b"synthetic material original file"
+    response = client.post(f"/api/v1/cases/{c['id']}/documents", files={"file": ("original.txt", raw)})
+    assert response.status_code == 201
+    original = response.json()["document"]
+    backup = client.get("/api/v1/data/backup")
+    restored = client.post("/api/v1/data/restore", files={"file": ("backup.zip", backup.content)})
+    assert restored.is_success, restored.text
+    copied = next(v for v in client.get("/api/v1/cases").json() if v["id"] != c["id"])
+    doc = current(client, copied)["documents"][0]
+    assert doc["id"] != original["id"]
+    assert client.get("/api/v1/documents/" + doc["id"] + "/content").content == raw
+    assert client.get("/api/v1/documents/" + original["id"] + "/content").content == raw
