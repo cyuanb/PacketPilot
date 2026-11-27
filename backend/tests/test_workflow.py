@@ -175,7 +175,9 @@ def test_link_scope_conflicts_and_database_ownership(client, database):
 )
 def test_scenarios_are_distinct_snapshots_with_scoped_primary_roles(client, identifier, kind):
     configs = client.get("/api/v1/scenarios").json()
-    assert len(configs) == 5 and {c["family"] for c in configs} == {"education", "employment", "business"}
+    assert len(configs) == 9 and {"education", "employment", "business"}.issubset(
+        {c["family"] for c in configs}
+    )
     item = case(client, scenario_id=identifier)
     assert item["scenario"]["id"] == identifier and item["scenario"]["support_level"] == "starter"
     item = activate_rule(client, item)

@@ -12,6 +12,8 @@ export type Scenario = {
   stages: string[];
   support_level: string;
   notice: string;
+  slots?: { id: string; label: string; document_type: string }[];
+  output?: { folder: string; naming: string; notice: string };
 };
 export type DocumentLink = {
   document_id: string;

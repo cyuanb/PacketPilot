@@ -146,6 +146,8 @@ class Document(Base):
     pages: Mapped[list] = mapped_column(JSONB, default=list)
     parse_note: Mapped[str] = mapped_column(Text, default="")
     parse_method: Mapped[str] = mapped_column(String(40), default="native")
+    current_parse_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    assignment: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     __table_args__ = (
         UniqueConstraint("logical_id", "version"),
@@ -162,6 +164,7 @@ class RuleSet(Base):
     status: Mapped[str] = mapped_column(String(20), default="draft")
     requirements: Mapped[list] = mapped_column(JSONB, default=list)
     source_ids: Mapped[list] = mapped_column(JSONB, default=list)
+    source_versions: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     __table_args__ = (UniqueConstraint("case_id", "version"),)
 
@@ -377,3 +380,53 @@ class IssueEvent(Base):
     case_revision: Mapped[int] = mapped_column(Integer)
     run_id: Mapped[str] = mapped_column(String(36))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ParseRevision(Base):
+    __tablename__ = "parse_revisions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    document_id: Mapped[str] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
+    )
+    version: Mapped[int] = mapped_column(Integer)
+    parent_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    method: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(30))
+    pages: Mapped[list] = mapped_column(JSONB, default=list)
+    fields: Mapped[list] = mapped_column(JSONB, default=list)
+    note: Mapped[str] = mapped_column(Text, default="")
+    engine: Mapped[str] = mapped_column(String(100), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (UniqueConstraint("document_id", "version", name="uq_parse_version"),)
+
+
+class MaterialPacket(Base):
+    __tablename__ = "material_packets"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    case_revision: Mapped[int] = mapped_column(Integer)
+    manifest: Mapped[dict] = mapped_column(JSONB)
+    input_snapshot: Mapped[dict] = mapped_column(JSONB)
+    archive: Mapped[bytes] = mapped_column(LargeBinary)
+    sha256: Mapped[str] = mapped_column(String(64))
+    request_key: Mapped[str] = mapped_column(String(100))
+    request_digest: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (UniqueConstraint("case_id", "request_key", name="uq_packet_request"),)
+
+
+class DeliveryRecord(Base):
+    __tablename__ = "delivery_records"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    packet_id: Mapped[str] = mapped_column(ForeignKey("material_packets.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(20))
+    channel: Mapped[str] = mapped_column(String(200))
+    recipient: Mapped[str] = mapped_column(String(200))
+    reference: Mapped[str] = mapped_column(String(500), default="")
+    note: Mapped[str] = mapped_column(Text, default="")
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        CheckConstraint("status IN ('submitted','received','returned')", name="ck_delivery_status"),
+    )

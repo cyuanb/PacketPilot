@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     max_file_bytes: int = 20 * 1024 * 1024
     max_pages: int = 100
     model_timeout: int = 60
+    ocr_enabled: bool = True
+    ocr_min_score: float = 0.85
+    ocr_max_pages: int = 30
+    parse_timeout: int = 300
 
     @property
     def storage(self) -> Path:

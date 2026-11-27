@@ -11,6 +11,7 @@ from sqlalchemy import or_, select
 from .agent import Cancelled, locked_run, run_agent
 from .application.cases import bump
 from .application.issues import synchronize_issues
+from .application.parses import append_parse, ensure_parse
 from .application.reports import checklist
 from .application.runs import event
 from .config import ROOT, settings
@@ -67,13 +68,20 @@ def parse_task(run_id, fence):
         k: v for k, v in os.environ.items() if k.upper() in ("PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP")
     }
     environment["PYTHONPATH"] = str(ROOT / "backend")
+    environment.update(
+        DATA_DIR=str(settings.storage),
+        OCR_ENABLED=str(settings.ocr_enabled).lower(),
+        OCR_MAX_PAGES=str(settings.ocr_max_pages),
+        OCR_MIN_SCORE=str(settings.ocr_min_score),
+        MAX_PAGES=str(settings.max_pages),
+    )
     try:
         subprocess.run(
             [sys.executable, "-m", "app.parse_cli", str(settings.storage / key), str(output)],
             cwd=ROOT,
             env=environment,
             check=True,
-            timeout=45,
+            timeout=settings.parse_timeout,
             capture_output=True,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
@@ -88,9 +96,8 @@ def parse_task(run_id, fence):
         doc = db.get(Document, r.payload["document_id"])
         if not doc or not doc.active:
             raise Cancelled()
-        doc.pages = parsed["pages"]
-        doc.parse_status = parsed["status"]
-        doc.parse_note = parsed["note"]
+        ensure_parse(db, doc)
+        append_parse(db, doc, parsed, "ocr" if parsed.get("engine", "").startswith("RapidOCR") else "native")
         bump(db, case, "document.parsed", {"document_id": doc.id, "status": doc.parse_status})
         r.result = {"document_id": doc.id, "parse_status": doc.parse_status}
 
@@ -157,7 +164,10 @@ def process(run_id, fence, kind):
                 if kind == "parse":
                     doc = db.get(Document, r.payload.get("document_id"))
                     if doc:
-                        doc.parse_status, doc.parse_note = "failed", safe
+                        ensure_parse(db, doc)
+                        append_parse(
+                            db, doc, {"pages": doc.pages, "status": "failed", "note": safe}, "failed"
+                        )
                 db.add(
                     Message(
                         case_id=r.case_id,

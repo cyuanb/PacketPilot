@@ -25,7 +25,7 @@ from ..application.documents import doc_view, document_for, documents_for, remov
 from ..application.runs import enqueue
 from ..config import settings
 from ..db import get_db, uid
-from ..models import Document
+from ..models import Document, ParseRevision
 from ..parsing import MIMES
 from ..schemas import TextInput
 from .dependencies import current_user
@@ -123,8 +123,27 @@ async def upload(
 
 
 @router.get("/api/v1/documents/{doc_id}")
-def document_detail(doc_id: str, user=Depends(current_user), db: Session = Depends(get_db)):
-    return doc_view(document_for(db, user, doc_id))
+def document_detail(
+    doc_id: str,
+    parse_revision_id: str | None = None,
+    user=Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    d = document_for(db, user, doc_id)
+    result = doc_view(d)
+    if parse_revision_id:
+        p = db.get(ParseRevision, parse_revision_id)
+        if not p or p.document_id != d.id:
+            raise HTTPException(404, "解析版本不存在")
+        result.update(
+            pages=p.pages,
+            parse_revision_id=p.id,
+            parse_status=p.status,
+            parse_method=p.method,
+            parse_note=p.note,
+            page_count=len(p.pages),
+        )
+    return result
 
 
 @router.get("/api/v1/documents/{doc_id}/content")

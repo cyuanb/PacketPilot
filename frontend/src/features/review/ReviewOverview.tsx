@@ -78,7 +78,8 @@ export function ReviewOverview({
                 f?.evaluation_state === "evaluated" &&
                 (f?.verdict === "pass" ||
                   f?.applicability === "not_applicable" ||
-                  confirmed.has(r.id));
+                  confirmed.has(r.id) ||
+                  f?.satisfied_by_confirmation);
               return (
                 <div className={"finding " + (good ? "good" : "")} key={r.id}>
                   <span
@@ -99,6 +100,17 @@ export function ReviewOverview({
                     <div className="finding-heading">
                       <h3>
                         {r.title}
+                        {r.kind === "group" && (
+                          <small className="advisory-label">要求组</small>
+                        )}
+                        {requirements.some(
+                          (g) =>
+                            Array.isArray(g.parameters.children) &&
+                            g.parameters.children.includes(r.id),
+                        ) && <small className="advisory-label">组内子项</small>}
+                        {r.parameters.severity === "warning" && (
+                          <small className="advisory-label">提醒项</small>
+                        )}
                         {!r.required && (
                           <small className="advisory-label">建议项</small>
                         )}
@@ -126,6 +138,23 @@ export function ReviewOverview({
                       </Badge>
                     </div>
                     <p>{f?.reason || r.explanation || "等待执行检查"}</p>
+                    {f?.semantic_coverage?.map((c) => (
+                      <details key={c.criterion}>
+                        <summary>
+                          {c.criterion} · {c.verdict}
+                        </summary>
+                        <p>{c.reason}</p>
+                        {c.evidence.map((e, i) => (
+                          <button
+                            key={i}
+                            className="text-action"
+                            onClick={() => act(() => openEvidence(e))}
+                          >
+                            查看支持片段：{e.quote.slice(0, 60)}
+                          </button>
+                        ))}
+                      </details>
+                    ))}
                     {f?.next_action && !good && (
                       <div className="next-action">{f.next_action}</div>
                     )}

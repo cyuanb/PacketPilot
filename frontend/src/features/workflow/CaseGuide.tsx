@@ -2,6 +2,7 @@ import type { Case } from "../../api/types";
 import { post } from "../../api/client";
 import type { Tab } from "../../app/routes";
 import { useAsyncAction } from "../../app/useAsyncAction";
+import { ScenarioUpdate } from "./ScenarioUpdate";
 
 export function CaseGuide({
   item,
@@ -101,7 +102,15 @@ export function CaseGuide({
             查看问题
           </button>
         </li>
+        <li>
+          <strong>5 · 材料交付</strong>
+          <span>选择材料、冻结版本、记录提交与回执</span>
+          <button className="text-action" onClick={() => setTab("packets")}>
+            准备交付
+          </button>
+        </li>
       </ol>
+      <ScenarioUpdate item={item} refresh={refresh} />
       {error && (
         <p role="alert" className="form-error">
           {error}
@@ -138,7 +147,9 @@ export function CaseGuide({
         >
           确认事项背景
         </button>
-        <span className="hint">当前可导出检查清单，尚不生成材料包。</span>
+        <span className="hint">
+          扫描件可在“解析与校订”核对；材料包与检查清单分别导出。
+        </span>
       </div>
     </section>
   );

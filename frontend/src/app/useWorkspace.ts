@@ -138,7 +138,13 @@ export function useWorkspace({
     await refresh();
   };
   const openEvidence = async (e: Evidence) => {
-    const d = await api<Doc>("/documents/" + e.document_id);
+    const d = await api<Doc>(
+      "/documents/" +
+        e.document_id +
+        (e.parse_revision_id
+          ? "?parse_revision_id=" + encodeURIComponent(e.parse_revision_id)
+          : ""),
+    );
     if (!isCurrent()) return;
     setPreview(d);
     setHighlight(e);
@@ -217,7 +223,8 @@ export function useWorkspace({
       f?.evaluation_state === "evaluated" &&
       (f.verdict === "pass" ||
         f.applicability === "not_applicable" ||
-        confirmed.has(r.id))
+        confirmed.has(r.id) ||
+        f?.satisfied_by_confirmation)
     );
   }).length;
   const percentage = requirements.length

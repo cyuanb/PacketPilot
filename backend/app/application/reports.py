@@ -1,9 +1,14 @@
 """Current review reports reconciled with persisted revisions and evidence."""
 
+from datetime import date
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import select
 
+from ..db import now
 from ..models import Attestation, RuleSet, Run
 from ..review.aggregation import assess_results, requirements_fingerprint
+from ..review.structure import source_versions_valid
 from ..review.version import REVIEW_ENGINE_VERSION
 from .documents import documents_for
 
@@ -13,15 +18,32 @@ def checklist(db, case):
     findings = run.result.get("findings", []) if run else []
     stale = bool(run and run.revision != case.revision)
     rules = db.get(RuleSet, case.active_rules_id) if case.active_rules_id else None
-    source_ids = {
-        d.id for d in documents_for(db, case.id) if d.purpose == "source" and d.parse_status == "ready"
-    }
-    if rules and not set(rules.source_ids).issubset(source_ids):
+    if rules and not source_versions_valid(rules, documents_for(db, case.id)):
         stale = True
     requirements = rules.requirements if rules else []
+    today = now().astimezone(ZoneInfo(case.timezone)).date().isoformat()
+    time_changed = bool(
+        run
+        and any(
+            r.get("parameters", {}).get("reference") == "today" or "max_age_days" in r.get("parameters", {})
+            for r in requirements
+        )
+        and run.snapshot.get("reference_date") != today
+    )
+    expired = any(
+        r.get("parameters", {}).get("source_valid_until")
+        and date.fromisoformat(r["parameters"]["source_valid_until"]) < date.fromisoformat(today)
+        for r in requirements
+    )
+    if time_changed or expired:
+        stale = True
     engine_version = run.result.get("engine_version") if run else None
     legacy = bool(run and engine_version is None)
     stale_reason = "材料、背景或通知来源已经变化，请重新预检。" if stale else ""
+    if expired:
+        stale_reason = "要求来源已过有效日期，请重新确认通知和要求。"
+    elif time_changed:
+        stale_reason = "日期参照已变化，请重新核对有效期间。"
     if run and engine_version != REVIEW_ENGINE_VERSION:
         stale = True
         stale_reason = (

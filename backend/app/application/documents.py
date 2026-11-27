@@ -12,6 +12,9 @@ def doc_view(d, include_text=True):
     return {
         "id": d.id,
         "asset_revision_id": d.asset_revision_id,
+        "parse_revision_id": d.current_parse_id,
+        "assignment": d.assignment or {},
+        "sha256": d.sha256,
         "logical_id": d.logical_id,
         "version": d.version,
         "title": d.title,

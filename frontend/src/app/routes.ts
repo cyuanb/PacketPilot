@@ -5,6 +5,9 @@ export const tabs = [
   "chat",
   "history",
   "issues",
+  "packets",
+  "parsing",
+  "matching",
 ] as const;
 export type Tab = (typeof tabs)[number];
 export type WorkspaceRoute = {

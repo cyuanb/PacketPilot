@@ -8,7 +8,11 @@ from .fields import field_coverage
 
 def candidates(requirement, documents):
     token = norm(requirement.document_type)
-    material = [d for d in documents if d["purpose"] == "material"]
+    material = [
+        d
+        for d in documents
+        if d["purpose"] == "material" and d.get("assignment", {}).get("state") != "rejected"
+    ]
     types = requirement.parameters.get("document_types", [])
     if requirement.kind == "field_consistency" and isinstance(types, list) and types:
         return [
@@ -25,7 +29,12 @@ def candidates(requirement, documents):
     return [
         d
         for d in material
-        if token in norm(d.get("category", "")) or any(token in norm(p["text"]) for p in d["pages"])
+        if token in norm(d.get("category", ""))
+        or any(token in norm(p["text"]) for p in d["pages"])
+        or (
+            d.get("assignment", {}).get("state") == "accepted"
+            and token == norm(d["assignment"].get("document_type", ""))
+        )
     ]
 
 
@@ -41,6 +50,11 @@ MATERIAL_PROFILES = {
 
 
 def material_identity(document, document_type):
+    from .structure import accepted_identity
+
+    accepted = accepted_identity(document, document_type)
+    if accepted:
+        return accepted
     result = {"document_id": document["id"], "status": "unverified", "reason": "", "evidence": []}
     if document["parse_status"] != "ready":
         return {**result, "status": "unreadable", "reason": "材料内容尚未完整读取"}

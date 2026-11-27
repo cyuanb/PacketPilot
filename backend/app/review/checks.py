@@ -154,4 +154,6 @@ def check_one(r, docs, facts, today=None):
 
 
 def run_checks(snapshot):
-    return [check_one(r, snapshot["documents"], snapshot["facts"]) for r in snapshot["requirements"]]
+    from .advanced import evaluate_rules
+
+    return evaluate_rules(snapshot)

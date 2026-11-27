@@ -199,8 +199,10 @@ def next_version(db, asset):
 def capture_document(db, case, document, previous=None):
     """Capture original bytes and any existing text without renumbering case documents."""
     from .library_links import ensure_link
+    from .parses import ensure_parse
 
     db.flush()
+    ensure_parse(db, document)
     if document.asset_revision_id:
         ensure_link(db, case, document)
         return

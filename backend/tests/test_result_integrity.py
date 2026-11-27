@@ -113,6 +113,6 @@ def test_readiness_and_exports_validate_stored_results(client, database, mode, e
 def test_current_complete_report_has_version_and_coverage(client):
     c = client.post("/api/v1/demo").json()
     report = c["checklist"]
-    assert report["engine_version"] == "0.1.1"
+    assert report["engine_version"] == "0.2.0"
     assert report["coverage"]["expected_count"] == report["coverage"]["evaluated_count"] == 5
     assert report["coverage"]["complete"] and report["can_export"]

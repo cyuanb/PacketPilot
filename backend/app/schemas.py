@@ -9,6 +9,8 @@ class StrictModel(BaseModel):
 
 class Evidence(StrictModel):
     document_id: str
+    parse_revision_id: str | None = None
+    region_id: str | None = None
     page: int = Field(ge=1)
     quote: str = Field(min_length=1, max_length=1000)
 
@@ -26,6 +28,7 @@ class Requirement(StrictModel):
         "date_constraint",
         "semantic_requirement",
         "manual_review",
+        "group",
     ]
     document_type: str = Field(default="", max_length=100)
     required: bool = True
@@ -33,6 +36,13 @@ class Requirement(StrictModel):
     parameters: dict = Field(default_factory=dict)
     source_evidence: list[Evidence] = Field(min_length=1, max_length=10)
     explanation: str = Field(default="", max_length=1000)
+
+
+class SemanticCoverage(StrictModel):
+    criterion: str = Field(min_length=1, max_length=300)
+    verdict: Literal["pass", "fail", "unknown"]
+    reason: str = Field(min_length=1, max_length=1000)
+    evidence: list[Evidence] = Field(default_factory=list, max_length=10)
 
 
 class FieldCoverage(StrictModel):
@@ -61,6 +71,7 @@ class Finding(StrictModel):
     dependencies: list[str] = Field(default_factory=list)
     field_coverage: list[FieldCoverage] = Field(default_factory=list)
     material_matches: list[MaterialMatch] = Field(default_factory=list)
+    semantic_coverage: list[SemanticCoverage] = Field(default_factory=list, max_length=20)
 
 
 class CaseInput(StrictModel):

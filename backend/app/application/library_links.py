@@ -136,6 +136,9 @@ def bind_revision(db, case, revision_id, purpose, category, previous=None):
     )
     db.flush()
     ensure_link(db, case, document)
+    from .parses import ensure_parse
+
+    ensure_parse(db, document)
     if document.parse_status == "queued":
         enqueue(db, case, "parse", {"document_id": document.id})
     return document

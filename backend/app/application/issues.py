@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from ..db import now
 from ..models import Issue, IssueEvent
+from ..review.structure import child_ids
 from .reports import checklist
 
 
@@ -32,16 +33,23 @@ def synchronize_issues(db, case):
         for issue in db.scalars(select(Issue).where(Issue.case_id == case.id).with_for_update())
     }
     requirements = {rule["id"]: rule for rule in report["requirements"]}
+    children = child_ids(report["requirements"])
     confirmed = {entry["requirement_id"] for entry in report["attestations"]}
     for finding in report["findings"]:
         key = finding["requirement_id"]
         rule = requirements[key]
+        required = (
+            rule["required"]
+            and key not in children
+            and rule.get("parameters", {}).get("severity", "blocking") == "blocking"
+        )
         fingerprint = hashlib.sha256(
             json.dumps(rule, sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()
         resolved = (
             finding["applicability"] == "not_applicable"
             or finding["verdict"] == "pass"
+            or finding.get("satisfied_by_confirmation", False)
             or (
                 finding["method"] == "manual"
                 and key in confirmed
@@ -57,7 +65,7 @@ def synchronize_issues(db, case):
                 requirement_id=key,
                 rule_fingerprint=fingerprint,
                 title=rule["title"],
-                required=rule["required"],
+                required=required,
                 verdict=finding["verdict"],
                 reason=finding["reason"],
                 next_action=finding["next_action"],
@@ -96,7 +104,7 @@ def synchronize_issues(db, case):
             or issue.next_action != next_action
         )
         old_status = issue.status
-        issue.rule_fingerprint, issue.title, issue.required = fingerprint, rule["title"], rule["required"]
+        issue.rule_fingerprint, issue.title, issue.required = fingerprint, rule["title"], required
         issue.verdict, issue.reason, issue.next_action = (
             finding["verdict"],
             reason,

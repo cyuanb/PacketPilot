@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CaseLibraryLinks } from "../workflow/CaseLibraryLinks";
 import { SimpleRulesDialog } from "../workflow/SimpleRulesDialog";
+import { VisualRulesEditor } from "./VisualRulesEditor";
 import {
   BookOpen,
   Check,
@@ -46,6 +47,7 @@ export function RequirementsPanel({
   setNotice,
 }: Props) {
   const [simpleEditor, setSimpleEditor] = useState(false);
+  const [visualEditor, setVisualEditor] = useState(false);
   return (
     <>
       <CaseLibraryLinks item={item} purpose="source" refresh={refresh} />
@@ -53,6 +55,7 @@ export function RequirementsPanel({
         <button className="primary" onClick={() => setSimpleEditor(true)}>
           根据通知建立要求
         </button>
+        <button onClick={() => setVisualEditor(true)}>可视化编辑要求树</button>
         <span className="hint">
           不必编写 JSON；每项要求保留原文引用，保存草稿后再启用。
         </span>
@@ -61,6 +64,13 @@ export function RequirementsPanel({
         <SimpleRulesDialog
           item={item}
           close={() => setSimpleEditor(false)}
+          saved={refresh}
+        />
+      )}
+      {visualEditor && (
+        <VisualRulesEditor
+          item={item}
+          close={() => setVisualEditor(false)}
           saved={refresh}
         />
       )}

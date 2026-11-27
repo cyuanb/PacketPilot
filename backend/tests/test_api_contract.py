@@ -29,7 +29,7 @@ def test_factory_mounts_frontend_without_shadowing_api(monkeypatch, tmp_path, da
             assert response.text == "<h1>PacketPilot test frontend</h1>"
             assert response.headers["cache-control"] == "no-cache"
             assert browser.get("/api/v1/me").status_code == 401
-            assert browser.get("/api/health").json() == {"status": "ok", "version": "0.3.0"}
+            assert browser.get("/api/health").json() == {"status": "ok", "version": "0.6.0"}
 
 
 def test_session_cookie_and_response_boundary(client):

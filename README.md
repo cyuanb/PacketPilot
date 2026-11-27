@@ -6,7 +6,7 @@ PacketPilot 是可自行部署的开源材料准备工作台，将通知、资�
 
 [English](README.en.md) · [使用说明](docs/usage.md) · [配置说明](docs/configuration.md) · [架构](docs/architecture.md) · [测试](docs/testing.md)
 
-当前版本：0.3.0。软件使用 Apache-2.0 许可；自行配置的模型或基础设施可能产生资源费用。
+当前版本：0.6.0。软件使用 Apache-2.0 许可；自行配置的模型或基础设施可能产生资源费用。
 
 ## 功能
 
@@ -59,7 +59,7 @@ powershell -ExecutionPolicy Bypass -File scripts/stop.ps1
 
 ## 当前限制
 
-- 自动 OCR、通用文档分类、真实性鉴定和自动提交尚未提供。
+- 本机 CPU OCR 支持清晰中英文印刷体图片和扫描 PDF；需先准备模型。手写、印章与复杂表格仍需人工复核。材料类型候选不是真实性鉴定，不提供自动提交。
 - 规则检查针对明确可读取的内容；非标准版式、未知条件或识别不足应保留待确认状态。
 - 原件保存在本机，必要文本片段会发送到配置的模型服务；不是默认完全离线应用。
 - 适合本地单所有者使用。对外部署需要独立验证权限、网络与运行条件。
@@ -68,3 +68,18 @@ powershell -ExecutionPolicy Bypass -File scripts/stop.ps1
 ## 贡献与许可
 
 见 [CONTRIBUTING](CONTRIBUTING.md)、[SECURITY](SECURITY.md) 和 [LICENSE](LICENSE)。请使用合成资料报告问题，不上传私人文档或凭据。
+
+### 材料交付与深入核对
+
+- 在“材料包与交付”选择当前材料版本、命名和排序，预览后冻结 ZIP；包内含实际文件、目录和 SHA256 manifest。后续变更不改写冻结包，提交/回执由用户单独记录。
+- 在“解析与校订”对照逐页原件、OCR 区域和字段候选。重新解析及逐字段/逐页校订追加解析版本，历史证据保持指向原版本。
+- 在“材料归属”确认类型、主体、槽位、出具方与原件/译件配对，再配置分主体规则。要求树支持全部/任一/至少若干项、数量独立性、条件和日期窗口。
+- 可视化编辑器支持草稿试运行、多来源参数冲突提示、来源有效日期；场景更新需要显式接受。九种起步配置均以用户提供的具体通知为准，不代表正式行业规则库。
+
+可选 OCR 模型准备（Windows 原生环境，已安装后端依赖）：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\setup_ocr.py
+```
+
+该步骤仅下载固定版本的公开模型并验证 SHA256。日常识别在本机 CPU 执行，不上传图片、不下载模型；配置 `OCR_ENABLED=false` 可关闭。详见 [材料核对与交付](docs/material-review.md)。

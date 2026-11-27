@@ -183,6 +183,9 @@ def execute_tool(run_id, fence, name, args):
                 if f["verdict"] != "unknown" and not f["evidence"]:
                     raise ValueError("结论必须有材料证据")
                 verify_evidence(f["evidence"], snap["documents"], "material")
+                from .review.semantic import validate_semantic
+
+                validate_semantic(f, r, snap)
                 if f["verdict"] == "pass" and any(
                     d["parse_status"] != "ready"
                     for d in snap["documents"]
@@ -197,7 +200,9 @@ def execute_tool(run_id, fence, name, args):
                     material_matches=original.get("material_matches", []),
                 )
                 findings[f["requirement_id"]] = f
-            run.result = {**run.result, **review_result(snap, list(findings.values()))}
+            from .review.advanced import evaluate_rules
+
+            run.result = {**run.result, **review_result(snap, evaluate_rules(snap, findings))}
             result = {"saved": len(args["findings"])}
         elif name == "propose_facts":
             if len(args.get("facts", {})) > 30:
@@ -280,6 +285,9 @@ def run_agent(run_id, fence):
             "page_count.max_pages 是整数；file_size.max_bytes 是整数；"
             "date_constraint 使用 field 与 not_before(YYYY-MM-DD)，日期规则不明确就用 semantic_requirement。"
             "condition 为空或 {field,op:eq/ne/in,value}，支持 all/any 子条件数组。"
+            "group 的 parameters.children 引用子要求 id，operator 为 all/any/at_least；不要形成循环。"
+            "语义输出必须在 semantic_coverage 中逐一覆盖 parameters.criteria（未给出时按要求 title），每项包含 criterion、verdict、reason 和 evidence。"
+            "通过结论须逐检查点覆盖所有对应材料；引用必须实际支持该检查点，不能用关键词出现代替满足。未知或读取不完整保持 unknown。"
             "保存草稿后提示用户审阅启用。不要自动激活规则。"
             "scenario 仅为通用起步配置，materials 和 roles 是建议，不是正式要求。仅按用户提供的来源和已启用 requirements 核对。"
             "检查输出描述范围、问题、依据和下一步。不得宣称官方审核通过。"

@@ -88,11 +88,89 @@ SCENARIOS = [
 ]
 
 
+SCENARIOS.extend(
+    [
+        {
+            "id": "research_grant",
+            "kind": "research_grant",
+            "family": "research",
+            "title": "科研与资助申报",
+            "description": "按资助通知整理负责人、依托单位、申报书与合作证明，保留提交批次。",
+            "primary_subject_kind": "person",
+            "roles": [
+                {"role": "applicant", "label": "项目负责人"},
+                {"role": "organization", "label": "依托单位"},
+                {"role": "contact", "label": "项目联系人"},
+            ],
+            "facts": ["资助项目", "申报年度", "项目类别"],
+            "materials": ["申报书", "研究计划", "预算说明", "合作证明"],
+            "stages": ["确认申报通知与适用条件", "核对负责人及依托单位", "准备研究与预算材料"],
+        },
+        {
+            "id": "competition_submission",
+            "kind": "competition",
+            "family": "creative",
+            "title": "竞赛与作品征集",
+            "description": "区分报名材料和参赛作品，核对组别、提交格式、授权和交付版本。",
+            "primary_subject_kind": "person",
+            "roles": [
+                {"role": "applicant", "label": "参赛人"},
+                {"role": "organization", "label": "主办方"},
+                {"role": "representative", "label": "团队代表"},
+            ],
+            "facts": ["参赛组别", "作品类别", "是否团队参赛"],
+            "materials": ["报名表", "作品说明", "作品集", "授权书"],
+            "stages": ["确认征集规则与组别", "核对作品和授权范围", "固定本次提交版本"],
+        },
+        {
+            "id": "credential_renewal",
+            "kind": "credential",
+            "family": "professional",
+            "title": "资格与证照续期",
+            "description": "按指定机构通知核对持证人、有效期间和继续教育证明；不判断法定执业资格。",
+            "primary_subject_kind": "person",
+            "roles": [
+                {"role": "applicant", "label": "持证人"},
+                {"role": "organization", "label": "接收机构"},
+            ],
+            "facts": ["资格名称", "续期周期", "受理机构"],
+            "materials": ["续期申请表", "资格证明", "继续教育证明"],
+            "stages": ["确认本次续期通知", "核对有效期间和证明数量", "整理续期材料"],
+        },
+        {
+            "id": "volunteer_application",
+            "kind": "volunteer",
+            "family": "community",
+            "title": "公益与志愿报名",
+            "description": "按具体活动清单整理报名、培训和授权材料，保留补件与接收记录。",
+            "primary_subject_kind": "person",
+            "roles": [
+                {"role": "applicant", "label": "报名人"},
+                {"role": "organization", "label": "活动组织方"},
+                {"role": "contact", "label": "联系人"},
+            ],
+            "facts": ["活动名称", "报名岗位", "活动期间"],
+            "materials": ["报名表", "培训证明", "授权书"],
+            "stages": ["确认活动和岗位要求", "整理报名与培训材料", "核对授权并准备交付"],
+        },
+    ]
+)
+
+
 def catalog():
     return [
         {
             **deepcopy(item),
-            "version": "1",
+            "version": "2",
+            "slots": [
+                {"id": f"material-{i}", "label": name, "document_type": name}
+                for i, name in enumerate(item["materials"], 1)
+            ],
+            "output": {
+                "folder": item["id"],
+                "naming": "序号_材料名称_版本.原扩展名",
+                "notice": "这是可编辑的整理建议；以接收方通知为准，不自动强制格式或数量",
+            },
             "support_level": "starter",
             "notice": "通用起步配置，不是官方材料清单；检查要求须引用你提供的接收方通知。",
         }

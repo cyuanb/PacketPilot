@@ -98,7 +98,10 @@ def basic_check(case_id: str, body: RevisionInput, user=Depends(current_user), d
     run.model, run.status = "deterministic", "completed"
     case.current_check_id = run.id
     event(db, run.id, "run.completed", {"status": "completed", "mode": "rules_only"})
-    synchronize_issues(db, case)
+    from ..application.reports import checklist
+
+    if checklist(db, case)["can_export"]:
+        synchronize_issues(db, case)
     db.commit()
     return case_view(db, case, True)
 

@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from ..schemas import Finding, Requirement
 from .conditions import condition_value
+from .structure import child_ids
 from .version import REVIEW_ENGINE_VERSION
 
 
@@ -106,11 +107,58 @@ def assess_results(requirements, findings, facts, *, stale=False, confirmed=None
         for k in ("missing_ids", "duplicate_ids", "unexpected_ids", "invalid_ids", "invalid_rule_ids")
     )
     confirmed = set(confirmed or [])
+    children = child_ids(requirements)
+    safe_by_id = {f["requirement_id"]: f for f in safe}
+
+    def satisfied(identifier, seen=None):
+        seen = set(seen or [])
+        if identifier in seen or identifier not in safe_by_id:
+            return False
+        seen.add(identifier)
+        f, r = safe_by_id[identifier], expected[identifier]
+        if f["evaluation_state"] != "evaluated" or f["applicability"] == "unknown":
+            return False
+        if f["applicability"] == "not_applicable" or f["verdict"] == "pass":
+            return True
+        if r.kind == "manual_review" and f["method"] == "manual" and identifier in confirmed:
+            return True
+        if r.kind == "group":
+            active = [
+                key
+                for key in r.parameters.get("children", [])
+                if key in safe_by_id and safe_by_id[key]["applicability"] != "not_applicable"
+            ]
+            needed = (
+                len(active)
+                if r.parameters.get("operator", "all") == "all"
+                else 1
+                if r.parameters.get("operator") == "any"
+                else r.parameters.get("min_count", 1)
+            )
+            return bool(active) and sum(satisfied(key, seen) for key in active) >= needed
+        return False
+
+    for f in safe:
+        if (
+            expected[f["requirement_id"]].kind == "group"
+            and f["verdict"] != "pass"
+            and satisfied(f["requirement_id"])
+        ):
+            f["satisfied_by_confirmation"] = True
+            f["reason"] += "；组内人工项已由本人确认，组状态满足不等于机器全部验证通过"
     relevant = [
-        f for f in safe if expected[f["requirement_id"]].required and f["applicability"] != "not_applicable"
+        f
+        for f in safe
+        if expected[f["requirement_id"]].required
+        and expected[f["requirement_id"]].parameters.get("severity", "blocking") == "blocking"
+        and f["requirement_id"] not in children
+        and f["applicability"] != "not_applicable"
     ]
     advisory_count = sum(
-        not expected[f["requirement_id"]].required
+        (
+            not expected[f["requirement_id"]].required
+            or expected[f["requirement_id"]].parameters.get("severity", "blocking") != "blocking"
+        )
         and f["applicability"] != "not_applicable"
         and f["verdict"] != "pass"
         for f in safe
@@ -121,11 +169,13 @@ def assess_results(requirements, findings, facts, *, stale=False, confirmed=None
         status = "not_ready"
     elif not coverage["complete"]:
         status = "needs_review"
-    elif any(f["verdict"] in ("missing", "fail", "conflict") for f in relevant):
+    elif any(
+        f["verdict"] in ("missing", "fail", "conflict") and not satisfied(f["requirement_id"])
+        for f in relevant
+    ):
         status = "blocked"
     elif any(
-        f["applicability"] == "unknown"
-        or (f["verdict"] == "unknown" and not (f["method"] == "manual" and f["requirement_id"] in confirmed))
+        f["applicability"] == "unknown" or (f["verdict"] == "unknown" and not satisfied(f["requirement_id"]))
         for f in relevant
     ):
         status = "needs_review"

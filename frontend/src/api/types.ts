@@ -1,7 +1,13 @@
 import type { Scenario, DocumentLink } from "../features/workflow/types";
 import type { CaseSubject } from "../features/subjects/types";
 
-export type Evidence = { document_id: string; page: number; quote: string };
+export type Evidence = {
+  document_id: string;
+  page: number;
+  quote: string;
+  parse_revision_id?: string | null;
+  region_id?: string | null;
+};
 export type Requirement = {
   id: string;
   title: string;
@@ -14,6 +20,13 @@ export type Requirement = {
   explanation: string;
 };
 export type Finding = {
+  satisfied_by_confirmation?: boolean;
+  semantic_coverage?: {
+    criterion: string;
+    verdict: string;
+    reason: string;
+    evidence: Evidence[];
+  }[];
   requirement_id: string;
   applicability: string;
   verdict: string;
@@ -37,6 +50,16 @@ export type Finding = {
   }[];
 };
 export type Doc = {
+  parse_revision_id?: string | null;
+  assignment?: {
+    state?: string;
+    subject_id?: string;
+    document_type?: string;
+    slot_ids?: string[];
+    variant?: string;
+    pair_key?: string;
+    issuer?: string;
+  };
   asset_revision_id?: string | null;
   id: string;
   logical_id: string;

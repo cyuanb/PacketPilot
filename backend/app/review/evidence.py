@@ -9,9 +9,15 @@ def verify_evidence(evidence, documents, purpose=None):
         doc = next((d for d in documents if d["id"] == e["document_id"]), None)
         if not doc or (purpose and doc["purpose"] != purpose):
             raise ValueError("引用不属于本次检查的材料版本")
+        if e.get("parse_revision_id") and e["parse_revision_id"] != doc.get("parse_revision_id"):
+            raise ValueError("引用不属于本次解析版本")
         page = next((p for p in doc["pages"] if p["number"] == e["page"]), None)
         if not page or norm(e["quote"]) not in norm(page["text"]):
             raise ValueError("引用片段无法在对应材料中定位")
+        if e.get("region_id") and not any(
+            r["id"] == e["region_id"] and norm(e["quote"]) in norm(r["text"]) for r in page.get("regions", [])
+        ):
+            raise ValueError("引用无法定位到指定区域")
 
 
 def excerpts(doc, keyword=""):

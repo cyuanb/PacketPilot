@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+- Freeze selected material files into verifiable packets and record delivery/acknowledgement history separately from downloads.
+- Add native CPU OCR, append-only parse revisions, page previews, region locations and field/page corrections.
+- Add explicit material subject/slot assignments, requirement trees, independent quantities, translation pairs and date windows.
+- Add visual rule editing, dry runs, source-conflict handling, expiry and explicit scenario updates.
+- Expand starter scenarios to research funding, competitions, credential renewal and volunteer applications.
+
+
 ## 0.3.0
 
 - 为事项选择资料中心的固定版本，提示新版本并由用户显式切换；不同事项独立更新，解除引用保留原件。

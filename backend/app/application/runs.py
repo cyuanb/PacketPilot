@@ -2,12 +2,14 @@
 
 import hashlib
 import json
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from sqlalchemy import select
 
 from ..db import now
 from ..models import Message, RuleSet, Run, RunEvent
+from ..review.structure import source_versions_valid
 from .cases import case_for, expect_revision
 from .documents import doc_view, documents_for
 from .subjects import case_subjects, require_scenario_subject
@@ -16,8 +18,7 @@ from .subjects import case_subjects, require_scenario_subject
 def snapshot(db, case):
     rules = db.get(RuleSet, case.active_rules_id) if case.active_rules_id else None
     docs = documents_for(db, case.id)
-    source_ids = {d.id for d in docs if d.purpose == "source" and d.parse_status == "ready"}
-    valid_rules = bool(rules and set(rules.source_ids).issubset(source_ids))
+    valid_rules = bool(rules and source_versions_valid(rules, docs))
     return {
         "case_id": case.id,
         "workspace_id": case.workspace_id,
@@ -26,7 +27,7 @@ def snapshot(db, case):
         "scenario": case.scenario_snapshot,
         "revision": case.revision,
         "deadline": case.deadline,
-        "reference_date": now().astimezone().date().isoformat(),
+        "reference_date": now().astimezone(ZoneInfo(case.timezone)).date().isoformat(),
         "facts": case.facts,
         "rules_id": case.active_rules_id,
         "requirements": rules.requirements if valid_rules else [],

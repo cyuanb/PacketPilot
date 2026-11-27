@@ -4,7 +4,21 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .api import assets, cases, documents, identity, reports, requirements, runs, subjects, system, workflow
+from .api import (
+    assets,
+    cases,
+    documents,
+    identity,
+    matching,
+    packets,
+    parses,
+    reports,
+    requirements,
+    runs,
+    subjects,
+    system,
+    workflow,
+)
 from .api.identity import login_attempts as login_attempts
 from .api.middleware import http_error, request_boundary
 from .config import ROOT
@@ -26,6 +40,9 @@ def create_app():
         subjects.router,
         assets.router,
         workflow.router,
+        packets.router,
+        parses.router,
+        matching.router,
     ):
         app.include_router(router)
     dist = ROOT / "frontend" / "dist"

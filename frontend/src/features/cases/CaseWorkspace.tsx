@@ -1,5 +1,8 @@
 import { CaseGuide } from "../workflow/CaseGuide";
 import { IssuesPanel } from "../workflow/IssuesPanel";
+import { PacketsPanel } from "../delivery/PacketsPanel";
+import { ParseWorkspace } from "../parsing/ParseWorkspace";
+import { MaterialAssignments } from "../matching/MaterialAssignments";
 import {
   Archive,
   BookOpen,
@@ -194,7 +197,10 @@ export function CaseWorkspace({
             ["overview", "检查概览", ListChecks],
             ["issues", "问题与补件", CircleAlert],
             ["documents", "材料库", FolderOpen],
+            ["parsing", "解析与校订", BookOpen],
+            ["matching", "材料归属", ShieldCheck],
             ["rules", "申请要求", BookOpen],
+            ["packets", "材料包与交付", Archive],
             ["chat", "对话助手", MessageSquare],
             ["history", "检查历史", History],
           ] as const
@@ -283,6 +289,13 @@ export function CaseWorkspace({
       )}
       {tab === "issues" && (
         <IssuesPanel item={item} refresh={refresh} setTab={setTab} />
+      )}
+      {tab === "packets" && <PacketsPanel key={item.id} item={item} />}
+      {tab === "parsing" && (
+        <ParseWorkspace key={item.id} item={item} refresh={refresh} />
+      )}
+      {tab === "matching" && (
+        <MaterialAssignments item={item} refresh={refresh} />
       )}
       {tab === "documents" && (
         <DocumentsPanel

@@ -22,10 +22,12 @@ def health(db: Session = Depends(get_db)):
 
 @router.get("/api/v1/capabilities")
 def capabilities(user=Depends(current_user)):
+    from ..ocr import capabilities as ocr_capabilities
+
     return {
         "model": settings.llm_model,
         "model_configured": bool(settings.llm_api_key and settings.llm_base_url),
-        "ocr": False,
+        "ocr": ocr_capabilities()["available"],
         "formats": list(MIMES),
         "max_file_mb": 20,
         "inference": "所需文本片段会发送至配置的模型服务，原件保存在本机。",

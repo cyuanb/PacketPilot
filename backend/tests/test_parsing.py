@@ -43,8 +43,12 @@ def test_docx_preserves_table_text(tmp_path):
     assert any("李沐" in page["text"] for page in parse_file(p)["pages"])
 
 
-def test_image_is_never_claimed_as_read(tmp_path):
+def test_image_without_ocr_is_never_claimed_as_read(tmp_path, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "ocr_enabled", False)
     p = tmp_path / "photo.png"
     Image.new("RGB", (20, 20), "white").save(p)
     result = parse_file(p)
-    assert result["status"] == "needs_review" and result["pages"] == []
+    assert result["status"] == "needs_review" and result["pages"][0]["status"] == "needs_review"
+    assert result["pages"][0]["text"] == ""

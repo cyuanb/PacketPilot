@@ -1,6 +1,6 @@
 # PacketPilot
 
-An open-source, self-hosted document preflight workspace. Current version: 0.3.0.
+An open-source, self-hosted document preflight workspace. Current version: 0.6.0.
 
 Import a notice, review extracted requirements, upload documents, inspect evidence-backed findings, amend materials, and export a checklist.
 
@@ -22,6 +22,14 @@ Native Windows processes are supported; no Docker is required. Model providers a
 
 ## Boundaries
 
-Files remain local, while necessary excerpts are sent to the configured model service. OCR, authenticity verification and automated application submission are not implemented. Unknown inputs require review. The included example uses synthetic data.
+Files remain local, while necessary excerpts are sent to the configured model service. Optional local CPU OCR supports clear printed Chinese/English images and scanned PDFs after explicit model provisioning. Authenticity verification and automated submission are not provided. Unknown inputs require review. The included example uses synthetic data.
 
 Apache-2.0. Never include private documents or credentials in public issues.
+
+## Material review and delivery
+
+Frozen ZIP packets include selected original files (or explicitly chosen derived text), ordered paths, a contents index and SHA256 manifest. Downloading does not send a submission: users separately record delivery and acknowledgements. Changes to current inputs are shown without rewriting frozen packets.
+
+Page/field corrections and repeated OCR append parse revisions. Evidence can open the historical parser projection. Explicit subject/slot/type assignments support requirement groups, independent quantities, original/translation pairs and date windows. The visual editor offers dry runs and source-conflict handling. Nine starter scenarios provide roles and output suggestions, not official institutional requirements.
+
+Run `.venv\Scripts\python.exe scripts/setup_ocr.py` to provision checksum-pinned PP-OCRv4 weights. Recognition runs on the CPU without network access or implicit model downloads. See [scope and usage](docs/material-review.md).
