@@ -1,3 +1,5 @@
+import { CaseWork, ProcessingPanel } from "../community/CaseWork";
+import { CollaborationPanel } from "../community/CollaborationPanel";
 import { CaseGuide } from "../workflow/CaseGuide";
 import { IssuesPanel } from "../workflow/IssuesPanel";
 import { PacketsPanel } from "../delivery/PacketsPanel";
@@ -195,6 +197,9 @@ export function CaseWorkspace({
         {(
           [
             ["overview", "检查概览", ListChecks],
+            ["work", "计划与期限", CalendarDays],
+            ["processing", "材料加工", FolderOpen],
+            ["collaboration", "收集与复核", MessageSquare],
             ["issues", "问题与补件", CircleAlert],
             ["documents", "材料库", FolderOpen],
             ["parsing", "解析与校订", BookOpen],
@@ -270,6 +275,13 @@ export function CaseWorkspace({
             </div>
           </div>
         )}
+      {tab === "work" && <CaseWork key={item.id} item={item} />}
+      {tab === "processing" && (
+        <ProcessingPanel item={item} refresh={refresh} />
+      )}
+      {tab === "collaboration" && (
+        <CollaborationPanel item={item} refresh={refresh} />
+      )}
       {tab === "overview" && (
         <ReviewOverview
           requirements={requirements}

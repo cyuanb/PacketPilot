@@ -93,6 +93,28 @@ export function LibraryDetail({
           </p>
         </div>
         <div className="library-actions">
+          {asset.archived && (
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "永久清除这份已归档资料？仍有事项或冻结包引用时会被阻止。已导出的备份和外部副本不随之删除。",
+                  )
+                )
+                  act(async () => {
+                    await api("/assets/" + asset.id + "/purge", {
+                      method: "DELETE",
+                      body: JSON.stringify({ revision: asset.revision }),
+                    });
+                    client.invalidate("/assets?");
+                    window.location.hash = "#/library";
+                  });
+              }}
+            >
+              永久清除
+            </button>
+          )}
           <button className="secondary" onClick={() => setEditing(true)}>
             整理资料
           </button>
@@ -173,6 +195,28 @@ export function LibraryDetail({
               从事项移除材料或删除事项后，资料中心仍保留原件。归档只隐藏资料，不删除版本。
             </p>
             <div className="library-actions">
+              {asset.archived && (
+                <button
+                  disabled={busy}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "永久清除这份已归档资料？仍有事项或冻结包引用时会被阻止。已导出的备份和外部副本不随之删除。",
+                      )
+                    )
+                      act(async () => {
+                        await api("/assets/" + asset.id + "/purge", {
+                          method: "DELETE",
+                          body: JSON.stringify({ revision: asset.revision }),
+                        });
+                        client.invalidate("/assets?");
+                        window.location.hash = "#/library";
+                      });
+                  }}
+                >
+                  永久清除
+                </button>
+              )}
               <button
                 className="secondary"
                 disabled={busy}

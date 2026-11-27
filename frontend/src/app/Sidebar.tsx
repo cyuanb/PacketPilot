@@ -113,6 +113,13 @@ export function Sidebar({
           <Inbox size={19} />
           收集箱
         </button>
+        <button
+          onClick={() => {
+            window.location.hash = "#/community";
+          }}
+        >
+          协作、账号与数据
+        </button>
       </nav>
       <div className="sidebar-section">
         <span>最近申请</span>

@@ -1,6 +1,6 @@
 # PacketPilot
 
-An open-source, self-hosted document preflight workspace. Current version: 0.6.0.
+An open-source, self-hosted document preflight workspace. Current version: 0.9.0.
 
 Import a notice, review extracted requirements, upload documents, inspect evidence-backed findings, amend materials, and export a checklist.
 
@@ -33,3 +33,5 @@ Frozen ZIP packets include selected original files (or explicitly chosen derived
 Page/field corrections and repeated OCR append parse revisions. Evidence can open the historical parser projection. Explicit subject/slot/type assignments support requirement groups, independent quantities, original/translation pairs and date windows. The visual editor offers dry runs and source-conflict handling. Nine starter scenarios provide roles and output suggestions, not official institutional requirements.
 
 Run `.venv\Scripts\python.exe scripts/setup_ocr.py` to provision checksum-pinned PP-OCRv4 weights. Recognition runs on the CPU without network access or implicit model downloads. See [scope and usage](docs/material-review.md).
+
+The community preview includes persistent work plans, reminders/calendar export, PDF/image derivatives, scoped invitations and collection/review flows, recovery codes and session controls, portable backup/copy restore, guarded permanent deletion and job diagnostics. See [community usage and limitations](docs/community.md). Real-user acceptance is still required before a stable release.

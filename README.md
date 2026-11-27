@@ -6,7 +6,7 @@ PacketPilot 是可自行部署的开源材料准备工作台，将通知、资�
 
 [English](README.en.md) · [使用说明](docs/usage.md) · [配置说明](docs/configuration.md) · [架构](docs/architecture.md) · [测试](docs/testing.md)
 
-当前版本：0.6.0。软件使用 Apache-2.0 许可；自行配置的模型或基础设施可能产生资源费用。
+当前版本：0.9.0。软件使用 Apache-2.0 许可；自行配置的模型或基础设施可能产生资源费用。
 
 ## 功能
 
@@ -83,3 +83,7 @@ powershell -ExecutionPolicy Bypass -File scripts/stop.ps1
 ```
 
 该步骤仅下载固定版本的公开模型并验证 SHA256。日常识别在本机 CPU 执行，不上传图片、不下载模型；配置 `OCR_ENABLED=false` 可关闭。详见 [材料核对与交付](docs/material-review.md)。
+
+### 持续任务与基础协作
+
+当前免费预览版支持任务/草稿、期限提醒、日历、PDF/图片派生加工、限定材料分享/收集与复核、会话撤销和离线恢复码，以及配对数据备份/副本恢复和引用保护下的永久清除。详见 [协作与数据管理](docs/community.md)。真实用户试用及正式场景验收尚未完成，版本保留为 0.x 预览。

@@ -5,13 +5,19 @@ from fastapi.staticfiles import StaticFiles
 
 from . import __version__
 from .api import (
+    account,
     assets,
     cases,
+    collaboration,
+    data_management,
     documents,
     identity,
     matching,
+    operations,
     packets,
     parses,
+    planning,
+    processing,
     reports,
     requirements,
     runs,
@@ -43,6 +49,12 @@ def create_app():
         packets.router,
         parses.router,
         matching.router,
+        planning.router,
+        processing.router,
+        collaboration.router,
+        account.router,
+        operations.router,
+        data_management.router,
     ):
         app.include_router(router)
     dist = ROOT / "frontend" / "dist"

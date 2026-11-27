@@ -62,7 +62,11 @@ def assign_material(
         raise HTTPException(422, "槽位标识无效")
     if body.state == "accepted" and not body.document_type.strip():
         raise HTTPException(422, "请确认材料类型")
-    d.assignment = body.model_dump(exclude={"revision"}) if body.state != "unassigned" else {}
+    provenance = {"derivation": d.assignment["derivation"]} if (d.assignment or {}).get("derivation") else {}
+    d.assignment = {
+        **provenance,
+        **(body.model_dump(exclude={"revision"}) if body.state != "unassigned" else {}),
+    }
     bump(db, c, "material.assignment_changed", {"document_id": d.id})
     db.commit()
     return doc_view(d)

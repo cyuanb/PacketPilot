@@ -430,3 +430,71 @@ class DeliveryRecord(Base):
     __table_args__ = (
         CheckConstraint("status IN ('submitted','received','returned')", name="ck_delivery_status"),
     )
+
+
+class WorkItem(Base):
+    __tablename__ = "work_items"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(30))
+    title: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(30), default="todo")
+    detail: Mapped[dict] = mapped_column(JSONB, default=dict)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class WorkEvent(Base):
+    __tablename__ = "work_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    item_id: Mapped[str] = mapped_column(ForeignKey("work_items.id", ondelete="CASCADE"), index=True)
+    actor_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    data: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AccessGrant(Base):
+    __tablename__ = "access_grants"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    role: Mapped[str] = mapped_column(String(30))
+    document_ids: Mapped[list] = mapped_column(JSONB, default=list)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class CollectionSubmission(Base):
+    __tablename__ = "collection_submissions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    grant_id: Mapped[str] = mapped_column(ForeignKey("access_grants.id", ondelete="CASCADE"), index=True)
+    filename: Mapped[str] = mapped_column(String(250))
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    sha256: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(30), default="submitted")
+    note: Mapped[str] = mapped_column(Text, default="")
+    document_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ReviewComment(Base):
+    __tablename__ = "review_comments"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    grant_id: Mapped[str] = mapped_column(ForeignKey("access_grants.id", ondelete="CASCADE"), index=True)
+    document_id: Mapped[str] = mapped_column(ForeignKey("document_versions.id", ondelete="CASCADE"))
+    parse_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    page: Mapped[int] = mapped_column(Integer)
+    quote: Mapped[str] = mapped_column(Text, default="")
+    content: Mapped[str] = mapped_column(Text)
+    decision: Mapped[str] = mapped_column(String(20), default="comment")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class RecoveryCode(Base):
+    __tablename__ = "recovery_codes"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

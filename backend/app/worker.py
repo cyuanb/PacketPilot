@@ -16,7 +16,7 @@ from .application.reports import checklist
 from .application.runs import event
 from .config import ROOT, settings
 from .db import SessionLocal, now
-from .models import Case, Document, Message, Run
+from .models import Case, Document, Message, Run, WorkItem
 from .review.aggregation import review_result
 from .review.checks import run_checks
 
@@ -121,6 +121,20 @@ def process(run_id, fence, kind):
             case = db.scalar(select(Case).where(Case.id == r.case_id).with_for_update())
             r.status = "waiting_for_input" if r.result.get("question") else "completed"
             r.updated_at = now()
+            if r.result.get("question") and not db.scalar(
+                select(WorkItem.id).where(
+                    WorkItem.case_id == case.id, WorkItem.detail["run_id"].astext == r.id
+                )
+            ):
+                db.add(
+                    WorkItem(
+                        case_id=case.id,
+                        kind="question",
+                        title=str(r.result["question"])[:200],
+                        status="waiting",
+                        detail={"note": str(r.result["question"])[:10000], "run_id": r.id},
+                    )
+                )
             if r.result.get("findings"):
                 if case.revision == r.revision:
                     current = db.get(Run, case.current_check_id) if case.current_check_id else None

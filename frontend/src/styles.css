@@ -3245,3 +3245,51 @@ select {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.community-panel {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.community-panel form,
+.community-panel label,
+.account-entry form,
+.account-entry label {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.community-panel input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+.community-panel button {
+  margin: 6px;
+}
+.community-panel textarea {
+  min-height: 110px;
+}
+.work-card {
+  padding: 16px;
+  border: 1px solid #dbe5e4;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+.community-panel pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow: auto;
+}
+.community-panel code {
+  overflow-wrap: anywhere;
+}
+.community-hub {
+  max-width: 1200px;
+  padding: 24px;
+}
+.preserve-text {
+  white-space: pre-wrap;
+}
+.account-entry {
+  margin-top: 20px;
+}

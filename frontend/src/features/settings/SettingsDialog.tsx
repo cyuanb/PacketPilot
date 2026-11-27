@@ -51,8 +51,8 @@ export function SettingsDialog({
           <div className="settings-section">
             <h3>文档读取</h3>
             <p>
-              支持 PDF、DOCX、TXT、MD
-              和图片。扫描件可使用本机 OCR，模型准备状态见“解析与校订”；低质量内容可逐页或逐字段校订。
+              支持 PDF、DOCX、TXT、MD 和图片。扫描件可使用本机
+              OCR，模型准备状态见“解析与校订”；低质量内容可逐页或逐字段校订。
             </p>
           </div>
           <div className="settings-section">

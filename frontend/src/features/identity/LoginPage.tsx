@@ -1,3 +1,4 @@
+import { AccountEntry } from "../community/AccountTools";
 import {
   CheckCircle2,
   FileCheck2,
@@ -91,6 +92,7 @@ export function LoginPage({ act, setUser, error, busy }: Props) {
               进入工作台
             </button>
           </form>
+          <AccountEntry />
           <p className="login-help">
             首次使用？请使用本地初始化时配置的账号。
             <br />

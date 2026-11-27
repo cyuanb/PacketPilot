@@ -8,6 +8,9 @@ export const tabs = [
   "packets",
   "parsing",
   "matching",
+  "work",
+  "processing",
+  "collaboration",
 ] as const;
 export type Tab = (typeof tabs)[number];
 export type WorkspaceRoute = {
@@ -15,6 +18,7 @@ export type WorkspaceRoute = {
   tab: Tab;
   archive: boolean;
   subjects?: boolean;
+  community?: boolean;
   library?: "all" | "inbox";
   assetId?: string;
 };
@@ -26,6 +30,7 @@ const home: WorkspaceRoute = {
 const casePath = /^#(?:case\/|\/cases\/)([0-9a-f-]{36})(?:\/([^/]+))?\/?$/i;
 
 export function parseRoute(hash: string): WorkspaceRoute {
+  if (hash === "#/community") return { ...home, community: true };
   if (hash === "#/library") return { ...home, library: "all" };
   if (hash === "#/inbox") return { ...home, library: "inbox" };
   const asset = hash.match(/^#\/library\/([0-9a-f-]{36})\/?$/i);
@@ -42,6 +47,7 @@ export function parseRoute(hash: string): WorkspaceRoute {
 }
 
 export function routeHash(route: WorkspaceRoute) {
+  if (route.community && !route.selected) return "#/community";
   if (route.library && !route.selected)
     return route.assetId
       ? "#/library/" + route.assetId

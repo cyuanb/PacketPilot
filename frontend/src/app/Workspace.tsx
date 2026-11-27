@@ -1,3 +1,4 @@
+import { AccountTools } from "../features/community/AccountTools";
 import {
   CheckCircle2,
   ChevronRight,
@@ -166,7 +167,9 @@ export function Workspace(options: WorkspaceOptions) {
             )}
           </div>
         )}
-        {options.navigation.library ? (
+        {options.navigation.community ? (
+          <AccountTools />
+        ) : options.navigation.library ? (
           options.navigation.assetId ? (
             <LibraryDetail
               id={options.navigation.assetId}

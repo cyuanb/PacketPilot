@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+- Add persistent work plans, questions, drafts, deadline reminders and calendar export.
+- Add immutable PDF/image derivatives and provenance.
+- Add scoped invitations, collection submissions, version-bound reviews, session revocation and single-use recovery codes.
+- Add portable data backup/restore, reference-aware permanent deletion, diagnostics and controlled retries.
+- Keep the release in preview pending real-user and declared-scenario acceptance.
+
+
 ## 0.6.0
 
 - Freeze selected material files into verifiable packets and record delivery/acknowledgement history separately from downloads.

@@ -110,23 +110,27 @@ def source_conflicts(requirements):
         if r["kind"] == "group":
             continue
         for other in requirements[:index]:
+
             def scope(x):
                 return (
-                            x["kind"],
-                            x["document_type"],
-                            x.get("parameters", {}).get("slot_id"),
-                            x.get("parameters", {}).get("subject_role"),
-                            x.get("parameters", {}).get("field"),
-                            str(x.get("condition", {})),
-                        )
+                    x["kind"],
+                    x["document_type"],
+                    x.get("parameters", {}).get("slot_id"),
+                    x.get("parameters", {}).get("subject_role"),
+                    x.get("parameters", {}).get("field"),
+                    str(x.get("condition", {})),
+                )
+
             def ids(x):
                 return {e["document_id"] for e in x["source_evidence"]}
+
             def trim(x):
                 return {
-                            k: v
-                            for k, v in x.get("parameters", {}).items()
-                            if k not in ("conflict_resolution", "source_valid_until")
-                        }
+                    k: v
+                    for k, v in x.get("parameters", {}).items()
+                    if k not in ("conflict_resolution", "source_valid_until")
+                }
+
             if scope(r) == scope(other) and ids(r) != ids(other) and trim(r) != trim(other):
                 conflicts.append(
                     {

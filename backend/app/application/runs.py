@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from ..db import now
-from ..models import Message, RuleSet, Run, RunEvent
+from ..models import Message, RuleSet, Run, RunEvent, WorkItem
 from ..review.structure import source_versions_valid
 from .cases import case_for, expect_revision
 from .documents import doc_view, documents_for
@@ -23,6 +23,10 @@ def snapshot(db, case):
         "case_id": case.id,
         "workspace_id": case.workspace_id,
         "subjects": case_subjects(db, case),
+        "work_plan": [
+            {"id": w.id, "kind": w.kind, "title": w.title, "status": w.status, "detail": w.detail}
+            for w in db.scalars(select(WorkItem).where(WorkItem.case_id == case.id))
+        ],
         "title": case.title,
         "scenario": case.scenario_snapshot,
         "revision": case.revision,
@@ -50,6 +54,18 @@ def enqueue(db, case, kind, payload=None, key=None):
             if prior.payload.get("_digest") != digest:
                 raise HTTPException(409, "相同请求标识不能用于不同操作")
             return prior, False
+    from sqlalchemy import func
+
+    from ..models import Case
+
+    pending = db.scalar(
+        select(func.count())
+        .select_from(Run)
+        .join(Case, Case.id == Run.case_id)
+        .where(Case.owner_id == case.owner_id, Run.status.in_(["queued", "running"]))
+    )
+    if pending >= 10:
+        raise HTTPException(429, "待处理任务已达 10 个，请等待完成或取消后重试")
     item = Run(
         case_id=case.id,
         kind=kind,
