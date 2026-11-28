@@ -1,3 +1,4 @@
+import { checkReadiness } from "./checkReadiness";
 import { useEffect, useState } from "react";
 import { Dialog } from "../../components/Dialog";
 import { CaseNavigation } from "./CaseNavigation";
@@ -115,21 +116,7 @@ export function CaseWorkspace({
   }, [item.id, tab]);
   useEffect(() => setInformationOpen(false), [item.id]);
   const applicant = item.subjects?.filter((s) => s.role === "applicant") || [];
-  const sources = (item.documents || []).filter(
-    (d) => d.purpose === "source" && d.parse_status === "ready",
-  );
-  const rulesCurrent =
-    requirements.length > 0 &&
-    requirements.every((r) =>
-      r.source_evidence.every((e) =>
-        sources.some(
-          (d) =>
-            d.id === e.document_id &&
-            (!e.parse_revision_id ||
-              e.parse_revision_id === d.parse_revision_id),
-        ),
-      ),
-    );
+  const readiness = checkReadiness(item);
   const processing =
     !!running ||
     !!item.runs?.some((r) => ["queued", "running"].includes(r.status));
@@ -234,19 +221,8 @@ export function CaseWorkspace({
           </button>
           <button
             className="secondary"
-            disabled={
-              busy ||
-              processing ||
-              !rulesCurrent ||
-              (!!item.scenario && !applicant.length)
-            }
-            title={
-              !rulesCurrent
-                ? "先确认当前通知并启用要求"
-                : item.scenario && !applicant.length
-                  ? "先关联申请主体"
-                  : "执行明确规则，语义项保留待核对"
-            }
+            disabled={busy || processing || !readiness.canCheck}
+            title={readiness.reason || "执行明确规则，语义项保留待核对"}
             onClick={() =>
               act(async () => {
                 await post(`/cases/${item.id}/checks/basic`, {
@@ -262,7 +238,8 @@ export function CaseWorkspace({
           </button>
           <button
             className="primary"
-            disabled={busy || !!running || !requirements.length}
+            disabled={busy || processing || !readiness.canCheck}
+            title={readiness.reason || "结合材料执行 AI 预检"}
             onClick={() => act(() => run("checks"))}
           >
             {running ? (

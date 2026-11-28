@@ -1,3 +1,4 @@
+import { checkReadiness } from "../cases/checkReadiness";
 import {
   BookOpen,
   LoaderCircle,
@@ -90,7 +91,8 @@ export function ChatPanel({
           )}
           {onCheck && (
             <button
-              disabled={busy || !!running || !requirements.length}
+              disabled={busy || !!running || !checkReadiness(item).canCheck}
+              title={checkReadiness(item).reason}
               onClick={onCheck}
             >
               AI 核对当前材料
