@@ -29,27 +29,37 @@ export function CaseLibraryLinks({
           {purpose === "source" ? "选用已有通知" : "选用已有资料"}
         </button>
       </div>
-      {links.map((link) => (
-        <div className="workflow-link" key={link.document_id}>
-          <div>
-            <strong>{link.asset_title}</strong>
-            <p>
-              本事项使用 v{link.version}
-              {link.update_available
-                ? ` · 资料中心已有 v${link.latest_version}`
-                : " · 已是最新资料版本"}
-              {link.archived ? " · 资料已归档" : ""}
-            </p>
-          </div>
-          <button
-            className={link.update_available ? "primary" : "text-action"}
-            disabled={link.archived}
-            onClick={() => setPicker(link)}
-          >
-            {link.update_available ? "查看并选择新版" : "选择版本"}
-          </button>
-        </div>
-      ))}
+      {links.length > 0 && (
+        <details className="library-version-details">
+          <summary>
+            已引用 {links.length} 份 ·{" "}
+            {links.some((link) => link.update_available)
+              ? `${links.filter((link) => link.update_available).length} 份可更新`
+              : "查看固定版本"}
+          </summary>
+          {links.map((link) => (
+            <div className="workflow-link" key={link.document_id}>
+              <div>
+                <strong>{link.asset_title}</strong>
+                <p>
+                  本事项使用 v{link.version}
+                  {link.update_available
+                    ? ` · 资料中心已有 v${link.latest_version}`
+                    : " · 已是最新资料版本"}
+                  {link.archived ? " · 资料已归档" : ""}
+                </p>
+              </div>
+              <button
+                className={link.update_available ? "primary" : "text-action"}
+                disabled={link.archived}
+                onClick={() => setPicker(link)}
+              >
+                {link.update_available ? "查看并选择新版" : "选择版本"}
+              </button>
+            </div>
+          ))}
+        </details>
+      )}
       {picker !== undefined && (
         <LibraryPicker
           item={item}

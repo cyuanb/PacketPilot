@@ -64,7 +64,7 @@ export function CaseGuide({
         <li>
           <strong>1 · 主体</strong>
           <span>
-            {hasSubject ? "已指定申请主体" : "在下方卡片关联申请主体"}
+            {hasSubject ? "已指定申请主体" : "在事项主体中关联申请主体"}
           </span>
         </li>
         <li>
