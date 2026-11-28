@@ -6,6 +6,7 @@ from sqlalchemy import select
 from ..models import Document, RuleSet, Run
 from .assets import remove_unretained_files
 from .cases import bump, case_for
+from .material_review import material_review
 
 
 def doc_view(d, include_text=True):
@@ -13,7 +14,8 @@ def doc_view(d, include_text=True):
         "id": d.id,
         "asset_revision_id": d.asset_revision_id,
         "parse_revision_id": d.current_parse_id,
-        "assignment": d.assignment or {},
+        "assignment": {k: v for k, v in (d.assignment or {}).items() if k != "_confirmation"},
+        "confirmation": material_review(d),
         "sha256": d.sha256,
         "logical_id": d.logical_id,
         "version": d.version,

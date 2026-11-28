@@ -18,18 +18,24 @@ export function CaseGuide({
   const { act, busy, error } = useAsyncAction();
   const scenario = item.scenario;
   const hasSubject = !!item.subjects?.some(
-    (subject) => subject.role === "applicant",
+    (subject) => subject.role === "applicant" && !subject.archived,
   );
   const sources = (item.documents || []).filter(
     (document) =>
       document.purpose === "source" && document.parse_status === "ready",
   );
-  const currentSources = new Set(sources.map((source) => source.id));
   const requirements = item.checklist.requirements;
   const rulesCurrent =
     !!requirements.length &&
     requirements.every((rule) =>
-      rule.source_evidence.every((e) => currentSources.has(e.document_id)),
+      rule.source_evidence.every((e) =>
+        sources.some(
+          (d) =>
+            d.id === e.document_id &&
+            (!e.parse_revision_id ||
+              e.parse_revision_id === d.parse_revision_id),
+        ),
+      ),
     );
   const running = item.runs?.some((run) =>
     ["queued", "running"].includes(run.status),

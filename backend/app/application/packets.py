@@ -15,6 +15,7 @@ from ..db import now, uid
 from ..models import AssetRevision, Blob, DeliveryRecord, MaterialPacket
 from .assets import original_path
 from .documents import documents_for
+from .material_review import material_review
 from .reports import checklist
 
 MAX_PACKET_BYTES = 200 * 1024 * 1024
@@ -85,7 +86,11 @@ def original_bytes(db, doc):
 
 
 def prepare_packet(db, case, body):
-    docs = {d.id: d for d in documents_for(db, case.id) if d.purpose == "material"}
+    docs = {
+        d.id: d
+        for d in documents_for(db, case.id)
+        if d.purpose == "material" and (d.assignment or {}).get("state") != "rejected"
+    }
     entries, contents, names, selected = [], [], set(), set()
     total = 0
     for entry in body.entries:
@@ -116,6 +121,7 @@ def prepare_packet(db, case, body):
                 "document_version": d.version,
                 "parse_revision_id": d.current_parse_id,
                 "content": entry.content,
+                "owner_review": material_review(d)["state"],
                 "size": len(raw),
                 "sha256": hashlib.sha256(raw).hexdigest(),
             }
@@ -123,6 +129,9 @@ def prepare_packet(db, case, body):
         contents.append((name, raw))
     report = checklist(db, case)
     warnings = []
+    unconfirmed = sum(material_review(docs[e.document_id])["state"] != "confirmed" for e in body.entries)
+    if unconfirmed:
+        warnings.append(f"所选材料中有 {unconfirmed} 份尚未由本人确认当前版本；请先核对原件或明确接受此提示")
     if report["status"] != "ready" or not report["can_export"]:
         warnings.append("当前检查尚未就绪或已过时；此包不代表材料合格")
     if set(docs) - selected:

@@ -4,6 +4,7 @@ import type { WorkspaceState } from "../../app/useWorkspace";
 import { Badge } from "../../components/Badge";
 import { Dialog } from "../../components/Dialog";
 import { Empty } from "../../components/Empty";
+import { MaterialReviewControl } from "./MaterialReviewControl";
 type Props = Pick<
   WorkspaceState,
   | "preview"
@@ -72,6 +73,16 @@ export function DocumentPreview({
               <Info size={16} />
               {preview.parse_note}
             </div>
+          )}
+          {item && preview.purpose === "material" && (
+            <MaterialReviewControl
+              item={item}
+              document={preview}
+              changed={async (doc) => {
+                setPreview(doc);
+                await refresh();
+              }}
+            />
           )}
           {preview.pages.map((p) => (
             <section

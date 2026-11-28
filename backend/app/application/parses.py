@@ -6,7 +6,7 @@ from copy import deepcopy
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
-from ..models import ParseRevision
+from ..models import Case, Document, ParseRevision, Run
 
 
 def field_candidates(pages):
@@ -67,6 +67,66 @@ def ensure_parse(db, doc):
             doc.parse_method,
         )
     return db.get(ParseRevision, doc.current_parse_id)
+
+
+def schedule_reparse(db, case, doc):
+    from .cases import bump
+    from .runs import enqueue
+
+    if not doc.active or not doc.storage_key:
+        raise HTTPException(422, "仅当前文件原件可重新解析；粘贴文本可直接校订")
+    pending = db.scalar(
+        select(Run.id)
+        .where(
+            Run.case_id == case.id,
+            Run.kind == "parse",
+            Run.status.in_(["queued", "running"]),
+            Run.payload["document_id"].astext == doc.id,
+        )
+        .limit(1)
+    )
+    if pending:
+        raise HTTPException(409, "该材料已有解析任务，请等待完成或取消")
+    ensure_parse(db, doc)
+    doc.parse_status = "queued"
+    bump(db, case, "document.reparse_requested", {"document_id": doc.id})
+    return enqueue(db, case, "parse", {"document_id": doc.id})[0]
+
+
+def mark_parse_cancelled(db, run):
+    if run.kind != "parse":
+        return
+    case = db.scalar(select(Case).where(Case.id == run.case_id).with_for_update())
+    doc = db.get(Document, run.payload.get("document_id"))
+    if not case or not doc or not doc.active or doc.parse_status != "queued":
+        return
+    other = db.scalar(
+        select(Run.id)
+        .where(
+            Run.case_id == run.case_id,
+            Run.id != run.id,
+            Run.kind == "parse",
+            Run.status.in_(["queued", "running"]),
+            Run.payload["document_id"].astext == doc.id,
+        )
+        .limit(1)
+    )
+    if other:
+        return
+    from .cases import bump
+
+    ensure_parse(db, doc)
+    append_parse(
+        db,
+        doc,
+        {
+            "pages": doc.pages,
+            "status": "needs_review",
+            "note": run.error or "解析已取消，可重新解析原件；未完成内容不视为已读取。",
+        },
+        "cancelled" if run.status == "cancelled" else "failed",
+    )
+    bump(db, case, "document.parse_cancelled", {"document_id": doc.id})
 
 
 def parse_view(item):

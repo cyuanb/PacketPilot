@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 
 from ..application.cases import bump, case_for, expect_revision
 from ..application.documents import doc_view, document_for, documents_for
+from ..application.material_review import review_basis
 from ..application.subjects import case_subjects
-from ..db import get_db
+from ..db import get_db, now
+from ..models import Audit
 from ..review.matching import MATERIAL_PROFILES, material_identity
 from ..scenarios import scenario_snapshot
 from ..schemas import RevisionInput
@@ -52,6 +54,7 @@ def assign_material(
     d = document_for(db, user, document_id)
     c = case_for(db, user.id, d.case_id, True)
     expect_revision(c, body.revision)
+    db.refresh(d)
     if not d.active or d.purpose != "material":
         raise HTTPException(409, "只能确认当前事项的有效材料")
     if body.subject_id and not any(
@@ -62,12 +65,69 @@ def assign_material(
         raise HTTPException(422, "槽位标识无效")
     if body.state == "accepted" and not body.document_type.strip():
         raise HTTPException(422, "请确认材料类型")
-    provenance = {"derivation": d.assignment["derivation"]} if (d.assignment or {}).get("derivation") else {}
-    d.assignment = {
+    provenance = {k: v for k, v in (d.assignment or {}).items() if k in ("derivation", "_confirmation")}
+    updated = {
         **provenance,
         **(body.model_dump(exclude={"revision"}) if body.state != "unassigned" else {}),
     }
+    if updated == (d.assignment or {}):
+        return doc_view(d)
+    d.assignment = updated
     bump(db, c, "material.assignment_changed", {"document_id": d.id})
+    db.commit()
+    return doc_view(d)
+
+
+class MaterialConfirmationInput(RevisionInput):
+    parse_revision_id: str | None = None
+    confirmed: bool = True
+
+
+@router.post("/api/v1/documents/{document_id}/confirmation")
+def confirm_material(
+    document_id: str,
+    body: MaterialConfirmationInput,
+    user=Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    d = document_for(db, user, document_id)
+    c = case_for(db, user.id, d.case_id, True)
+    expect_revision(c, body.revision)
+    db.refresh(d)
+    if not d.active or d.purpose != "material":
+        raise HTTPException(409, "只能确认当前有效的材料版本")
+    if d.current_parse_id != body.parse_revision_id or d.parse_status == "queued":
+        raise HTTPException(409, "解析版本已变化或仍在解析，请刷新后核对")
+    if body.confirmed and (d.assignment or {}).get("state") == "rejected":
+        raise HTTPException(409, "此材料已排除，请先在材料归属中恢复使用")
+    if body.confirmed:
+        from ..application.packets import original_bytes
+
+        original_bytes(db, d)
+    previous = (d.assignment or {}).get("_confirmation") or {}
+    if previous.get("confirmed") == body.confirmed and (
+        not body.confirmed or previous.get("basis") == review_basis(d)
+    ):
+        return doc_view(d)
+    d.assignment = {
+        **(d.assignment or {}),
+        "_confirmation": {
+            "confirmed": body.confirmed,
+            "basis": review_basis(d),
+            "parse_revision_id": d.current_parse_id,
+            "at": now().isoformat(),
+            "actor_id": user.id,
+        },
+    }
+    # Review records do not change the material or silently invalidate/override a valid check.
+    c.updated_at = now()
+    db.add(
+        Audit(
+            case_id=c.id,
+            action="material.confirmed" if body.confirmed else "material.confirmation_revoked",
+            data={"document_id": d.id, "parse_revision_id": d.current_parse_id, "actor_id": user.id},
+        )
+    )
     db.commit()
     return doc_view(d)
 

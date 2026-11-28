@@ -9,7 +9,7 @@ import {
   MessageSquare,
   Pencil,
 } from "lucide-react";
-import { type Case } from "../../api";
+import { api, type Case } from "../../api";
 import type { WorkspaceState } from "../../app/useWorkspace";
 import { Badge } from "../../components/Badge";
 import { Empty } from "../../components/Empty";
@@ -27,6 +27,7 @@ type Props = Pick<
   | "percentage"
   | "doneCount"
   | "openFacts"
+  | "refresh"
 > & { item: Case };
 export function ReviewOverview({
   requirements,
@@ -42,6 +43,7 @@ export function ReviewOverview({
   percentage,
   doneCount,
   openFacts,
+  refresh,
 }: Props) {
   return (
     <div className="overview-grid">
@@ -223,6 +225,26 @@ export function ReviewOverview({
                       </details>
                     )}
                     <div className="evidence-actions">
+                      {confirmed.has(r.id) && (
+                        <button
+                          onClick={() =>
+                            act(async () => {
+                              await api(
+                                `/cases/${item.id}/attestations/${encodeURIComponent(r.id)}`,
+                                {
+                                  method: "DELETE",
+                                  body: JSON.stringify({
+                                    revision: item.revision,
+                                  }),
+                                },
+                              );
+                              await refresh();
+                            })
+                          }
+                        >
+                          撤销人工确认
+                        </button>
+                      )}
                       {r.source_evidence.map((e, i) => (
                         <button
                           key={"s" + i}

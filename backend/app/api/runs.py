@@ -75,6 +75,9 @@ def cancel(run_id: str, user=Depends(current_user), db: Session = Depends(get_db
     r.cancel_requested = True
     if r.status == "queued":
         r.status = "cancelled"
+        from ..application.parses import mark_parse_cancelled
+
+        mark_parse_cancelled(db, r)
     db.commit()
     return {"status": r.status, "cancel_requested": True}
 

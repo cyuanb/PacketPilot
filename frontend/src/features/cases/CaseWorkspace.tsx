@@ -405,6 +405,7 @@ export function CaseWorkspace({
           )}
           {tab === "overview" && (
             <ReviewOverview
+              refresh={refresh}
               requirements={requirements}
               item={item}
               setTab={setTab}

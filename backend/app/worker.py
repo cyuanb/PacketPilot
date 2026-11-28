@@ -35,6 +35,9 @@ def claim():
         if r.cancel_requested or r.attempt >= 3:
             r.status = "cancelled" if r.cancel_requested else "failed"
             r.error = "任务已取消" if r.cancel_requested else "任务恢复次数达到上限"
+            from .application.parses import mark_parse_cancelled
+
+            mark_parse_cancelled(db, r)
             event(db, r.id, "run." + r.status, {"message": r.error})
             return None
         r.fence += 1
@@ -156,6 +159,9 @@ def process(run_id, fence, kind):
             if r and r.fence == fence:
                 r.status = "cancelled"
                 r.updated_at = now()
+                from .application.parses import mark_parse_cancelled
+
+                mark_parse_cancelled(db, r)
                 event(db, r.id, "run.cancelled")
     except Exception as error:
         # No raw network exceptions/SQL parameters: diagnostic details stay out of user responses.

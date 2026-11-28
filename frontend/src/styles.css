@@ -3856,3 +3856,31 @@ select {
   height: auto;
   min-height: 100px;
 }
+
+.material-review-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.material-review-control button {
+  font-size: 12px;
+  padding: 7px 10px;
+}
+.material-review-help {
+  padding: 12px 18px;
+  color: #647b6d;
+  font-size: 12px;
+  line-height: 1.7;
+  border-bottom: 1px solid var(--border);
+}
+.document-row {
+  flex-wrap: wrap;
+}
+.document-row .document-name {
+  min-width: 180px;
+}
+.preview-meta + .material-review-control,
+.dialog-body > .material-review-control {
+  margin: 12px 0;
+}

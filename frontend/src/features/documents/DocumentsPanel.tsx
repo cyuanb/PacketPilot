@@ -4,6 +4,7 @@ import { FileText, Info, RefreshCw, Trash2, Upload } from "lucide-react";
 import { api } from "../../api";
 import type { WorkspaceState } from "../../app/useWorkspace";
 import { Badge } from "../../components/Badge";
+import { MaterialReviewControl } from "./MaterialReviewControl";
 type Props = Pick<
   WorkspaceState,
   | "busy"
@@ -79,6 +80,11 @@ export function DocumentsPanel({
           </button>
         </div>
         <div className="document-list">
+          {!!docMaterials.length && (
+            <p className="material-review-help">
+              “确认本版材料”表示你已核对当前原件与归属信息。它与“可读取”“要求通过”分别记录；换版、校订或归属变化后需重新确认。
+            </p>
+          )}
           {docMaterials.map((d) => (
             <div className="document-row" key={d.id}>
               <span className="document-icon">
@@ -105,6 +111,13 @@ export function DocumentsPanel({
                   } as Record<string, string>
                 )[d.parse_status] || d.parse_status}
               </Badge>
+              <MaterialReviewControl
+                item={item}
+                document={d}
+                changed={async () => {
+                  await refresh();
+                }}
+              />
               <button
                 className="icon-button"
                 title="替换材料"

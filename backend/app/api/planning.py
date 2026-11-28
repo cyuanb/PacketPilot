@@ -1,6 +1,6 @@
 """Persistent business work, reminders and user-reviewed suggestions."""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -169,7 +169,27 @@ def reminders(user=Depends(current_user), db: Session = Depends(get_db)):
         .join(Case, Case.id == WorkItem.case_id)
         .where(Case.owner_id == user.id, ~Case.archived)
     )
-    return [v for w in rows if (v := view(w))["reminder"]]
+    result = [v for w in rows if (v := view(w))["reminder"]]
+    for c in db.scalars(select(Case).where(Case.owner_id == user.id, ~Case.archived)):
+        try:
+            deadline = date.fromisoformat(c.deadline)
+            today = now().astimezone(ZoneInfo(c.timezone)).date()
+        except (ValueError, ZoneInfoNotFoundError):
+            continue
+        if (deadline - today).days <= 1:
+            result.append(
+                {
+                    "id": c.id + "-deadline",
+                    "case_id": c.id,
+                    "title": "事项截止：" + c.title,
+                    "kind": "case_deadline",
+                    "due_date": c.deadline,
+                    "overdue": today > deadline,
+                    "reminder": True,
+                    "timezone": c.timezone,
+                }
+            )
+    return result
 
 
 @router.get("/api/v1/cases/{case_id}/calendar.ics")
@@ -187,7 +207,22 @@ def calendar(case_id: str, user=Depends(current_user), db: Session = Depends(get
         )
 
     items = list_work(case_id, user, db)
+    c = case_for(db, user.id, case_id)
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//PacketPilot//Calendar//ZH"]
+    try:
+        due = date.fromisoformat(c.deadline)
+    except ValueError:
+        due = None
+    if due:
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{c.id}-deadline@packetpilot",
+            "DTSTAMP:" + now().strftime("%Y%m%dT%H%M%SZ"),
+            "DTSTART;VALUE=DATE:" + due.strftime("%Y%m%d"),
+            "SUMMARY:" + escape("事项截止：" + c.title),
+            "DESCRIPTION:" + escape("仅确定截止日期，具体截止时刻请以接收方通知为准。"),
+            "END:VEVENT",
+        ]
     for item in items:
         if not item.get("due_at") or item["status"] == "dismissed":
             continue

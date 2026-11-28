@@ -34,6 +34,28 @@ def synchronize_issues(db, case):
     }
     requirements = {rule["id"]: rule for rule in report["requirements"]}
     children = child_ids(report["requirements"])
+    finding_by_id = {f["requirement_id"]: f for f in report["findings"]}
+    parents = {
+        child: rule
+        for rule in report["requirements"]
+        if rule["kind"] == "group"
+        for child in rule.get("parameters", {}).get("children", [])
+    }
+
+    def optional_group_satisfied(key):
+        visited = set()
+        while key in parents and key not in visited:
+            visited.add(key)
+            parent = parents[key]
+            finding = finding_by_id.get(parent["id"], {})
+            if finding.get("applicability") == "not_applicable" or (
+                parent.get("parameters", {}).get("operator") in ("any", "at_least")
+                and (finding.get("verdict") == "pass" or finding.get("satisfied_by_confirmation"))
+            ):
+                return True
+            key = parent["id"]
+        return False
+
     confirmed = {entry["requirement_id"] for entry in report["attestations"]}
     for finding in report["findings"]:
         key = finding["requirement_id"]
@@ -50,6 +72,7 @@ def synchronize_issues(db, case):
             finding["applicability"] == "not_applicable"
             or finding["verdict"] == "pass"
             or finding.get("satisfied_by_confirmation", False)
+            or optional_group_satisfied(key)
             or (
                 finding["method"] == "manual"
                 and key in confirmed
@@ -92,7 +115,9 @@ def synchronize_issues(db, case):
             else "open"
         )
         reason = (
-            "本人已确认当前版本的人工检查项；不等同于机器验证通过。"
+            "所在要求组本次不适用或已满足任选/数量条件，本候选项无需继续补件；不代表该材料本身已通过。"
+            if optional_group_satisfied(key) and finding["verdict"] != "pass"
+            else "本人已确认当前版本的人工检查项；不等同于机器验证通过。"
             if resolved and finding["method"] == "manual" and key in confirmed
             else finding["reason"]
         )

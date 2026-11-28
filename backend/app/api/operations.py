@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..application.cases import case_for
-from ..application.runs import enqueue, run_for, run_view
+from ..application.runs import run_for, run_view
 from ..db import get_db
 from ..models import Case, Document, Run
 from .dependencies import current_user
@@ -56,7 +56,9 @@ def retry(run_id: str, user=Depends(current_user), db: Session = Depends(get_db)
         d = db.get(Document, old.payload.get("document_id"))
         if not d or not d.active:
             raise HTTPException(409, "材料版本已失效")
-        d.parse_status = "queued"
+        from ..application.parses import schedule_reparse
+
+        r = schedule_reparse(db, c, d)
     else:
         from ..application.runs import start_run
 
@@ -69,6 +71,5 @@ def retry(run_id: str, user=Depends(current_user), db: Session = Depends(get_db)
             {k: v for k, v in old.payload.items() if k != "_digest"},
             None,
         )
-    r, _ = enqueue(db, c, old.kind, {k: v for k, v in old.payload.items() if k != "_digest"})
     db.commit()
     return run_view(r)

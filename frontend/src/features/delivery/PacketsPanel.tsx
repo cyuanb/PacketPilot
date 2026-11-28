@@ -14,7 +14,11 @@ type Packet = {
   changed: boolean;
   case_revision: number;
   manifest: {
-    entries: (Entry & { sha256: string; size: number })[];
+    entries: (Entry & {
+      sha256: string;
+      size: number;
+      owner_review?: string;
+    })[];
     warnings: string[];
   };
   diff: {
@@ -44,8 +48,13 @@ const states: Record<string, string> = {
 
 export function PacketsPanel({ item }: { item: Case }) {
   const materials = (item.documents || []).filter(
-    (d) => d.purpose === "material",
+    (d) => d.purpose === "material" && d.assignment?.state !== "rejected",
   );
+  const reviewKey = (item.documents || [])
+    .map(
+      (d) => `${d.id}:${d.confirmation?.state}:${d.confirmation?.confirmed_at}`,
+    )
+    .join("|");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [title, setTitle] = useState(item.title + "材料包");
   const [packets, setPackets] = useState<Packet[]>([]);
@@ -80,11 +89,11 @@ export function PacketsPanel({ item }: { item: Case }) {
     return () => {
       active = false;
     };
-  }, [item.id, item.revision]);
+  }, [item.id, item.revision, reviewKey]);
   useEffect(() => {
     setPreview(null);
     setAck(false);
-  }, [item.revision]);
+  }, [item.revision, reviewKey]);
   const change = (next: Entry[]) => {
     setEntries(next);
     setPreview(null);
@@ -162,7 +171,10 @@ export function PacketsPanel({ item }: { item: Case }) {
                 }
               />
               {d.title} · v{d.version} ·{" "}
-              {d.parse_status === "ready" ? "可读" : "待核对"}
+              {d.parse_status === "ready" ? "可读" : "待核对"} ·{" "}
+              {d.confirmation?.state === "confirmed"
+                ? "已人工确认"
+                : "待人工确认"}
             </label>
           ))}
         </div>
@@ -296,8 +308,9 @@ export function PacketsPanel({ item }: { item: Case }) {
             {p.changed && (
               <p className="warning-text">
                 当前事项已变化，冻结包保持原样。新增 {p.diff.added.length}、移除{" "}
-                {p.diff.removed.length}、内容/归属变化 {p.diff.changed.length}{" "}
-                项；{p.diff.rules_changed ? "要求版本已改变。" : ""}
+                {p.diff.removed.length}、内容/归属/核对状态变化{" "}
+                {p.diff.changed.length} 项；
+                {p.diff.rules_changed ? "要求版本已改变。" : ""}
                 需要新版本时重新生成包。
               </p>
             )}
@@ -306,7 +319,12 @@ export function PacketsPanel({ item }: { item: Case }) {
               {p.manifest.entries.map((e) => (
                 <p key={e.path}>
                   {e.path} · {e.content === "original" ? "原件" : "派生文本"} ·{" "}
-                  {e.size} bytes
+                  {e.size} bytes ·{" "}
+                  {e.owner_review === "confirmed"
+                    ? "冻结时已人工确认"
+                    : e.owner_review
+                      ? "冻结时待人工确认"
+                      : "旧包未记录人工确认状态"}
                 </p>
               ))}
               {p.manifest.warnings.map((w) => (

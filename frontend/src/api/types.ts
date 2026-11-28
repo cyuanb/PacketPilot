@@ -50,6 +50,11 @@ export type Finding = {
   }[];
 };
 export type Doc = {
+  confirmation?: {
+    state: "pending" | "confirmed" | "stale" | "excluded";
+    confirmed_at?: string | null;
+    parse_revision_id?: string | null;
+  };
   parse_revision_id?: string | null;
   assignment?: {
     state?: string;

@@ -61,6 +61,12 @@ export function CaseWork({ item }: { item: Case }) {
   return (
     <section className="panel community-panel">
       <h2>任务计划与期限</h2>
+      {item.deadline && (
+        <p className="packet-preview">
+          事项截止：{item.deadline}
+          。已关联站内提醒与日历；修改申请截止日期后自动同步。仅确定日期时不会假定具体截止时刻。
+        </p>
+      )}
       <p>
         任务、待答问题和草稿保存在服务端。采纳建议不会自动改写背景、材料或检查结论。
       </p>

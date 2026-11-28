@@ -4,6 +4,7 @@ import html
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from ..application.cases import case_for, expect_revision
@@ -11,6 +12,7 @@ from ..application.issues import synchronize_issues
 from ..application.reports import checklist
 from ..db import get_db
 from ..models import Attestation, Audit
+from ..schemas import RevisionInput
 from .dependencies import current_user
 from .requests import AttestationInput
 
@@ -29,6 +31,30 @@ def attest(case_id: str, body: AttestationInput, user=Depends(current_user), db:
     db.add(Audit(case_id=c.id, action="manual.confirmed", data={"requirement_id": body.requirement_id}))
     db.flush()
     synchronize_issues(db, c)
+    db.commit()
+    return checklist(db, c)
+
+
+@router.delete("/api/v1/cases/{case_id}/attestations/{requirement_id}")
+def revoke_attestation(
+    case_id: str,
+    requirement_id: str,
+    body: RevisionInput,
+    user=Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    c = case_for(db, user.id, case_id, True)
+    expect_revision(c, body.revision)
+    db.execute(
+        delete(Attestation).where(
+            Attestation.case_id == c.id,
+            Attestation.revision == c.revision,
+            Attestation.requirement_id == requirement_id,
+        )
+    )
+    db.add(Audit(case_id=c.id, action="manual.confirmation_revoked", data={"requirement_id": requirement_id}))
+    if checklist(db, c)["can_export"]:
+        synchronize_issues(db, c)
     db.commit()
     return checklist(db, c)
 

@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 from ..application.cases import bump, case_for, expect_revision
 from ..application.documents import document_for
 from ..application.packets import original_bytes
-from ..application.parses import correct_region, ensure_parse, parse_view
-from ..application.runs import enqueue, run_view
+from ..application.parses import correct_region, parse_view
+from ..application.runs import run_view
 from ..db import get_db
-from ..models import ParseRevision, Run
+from ..models import ParseRevision
 from ..ocr import capabilities
 from ..rendering import page_image
 from ..schemas import RevisionInput
@@ -55,19 +55,10 @@ def reparse(document_id: str, body: RevisionInput, user=Depends(current_user), d
     d = document_for(db, user, document_id)
     c = case_for(db, user.id, d.case_id, True)
     expect_revision(c, body.revision)
-    if not d.active or not d.storage_key:
-        raise HTTPException(422, "仅当前文件原件可重新解析；粘贴文本可直接校订")
-    if any(
-        r.payload.get("document_id") == d.id
-        for r in db.scalars(
-            select(Run).where(Run.case_id == c.id, Run.kind == "parse", Run.status.in_(["queued", "running"]))
-        )
-    ):
-        raise HTTPException(409, "该材料已有解析任务")
-    ensure_parse(db, d)
-    d.parse_status = "queued"
-    bump(db, c, "document.reparse_requested", {"document_id": d.id})
-    r, _ = enqueue(db, c, "parse", {"document_id": d.id})
+    from ..application.parses import schedule_reparse
+
+    db.refresh(d)
+    r = schedule_reparse(db, c, d)
     db.commit()
     return run_view(r)
 

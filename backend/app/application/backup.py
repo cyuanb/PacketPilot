@@ -215,6 +215,9 @@ def restore_backup(db, user, raw):
                     row["manifest"] = source[
                         "manifest"
                     ]  # Preserve the exact frozen archive's original manifest.
+                if model is models.Document and row["parse_status"] == "queued":
+                    row["parse_status"] = "needs_review"
+                    row["parse_note"] = "从备份恢复；未自动重放解析任务，请重新解析原件。"
                 if model is models.Run and row["status"] in ("queued", "running"):
                     row.update(
                         status="cancelled",

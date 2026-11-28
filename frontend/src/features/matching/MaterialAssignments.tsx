@@ -14,15 +14,18 @@ type Candidate = {
   document_id: string;
   candidates: { document_type: string; status: string; reason: string }[];
 };
-const empty: Assignment = {
-  state: "accepted",
-  subject_id: "",
-  document_type: "",
-  slot_ids: [],
-  variant: "original",
-  pair_key: "",
-  issuer: "",
-};
+function editableAssignment(doc: Doc): Assignment {
+  const a = doc.assignment || {};
+  return {
+    state: a.state || "accepted",
+    subject_id: a.subject_id || "",
+    document_type: a.document_type || doc.category,
+    slot_ids: [...(a.slot_ids || [])],
+    variant: a.variant || "original",
+    pair_key: a.pair_key || "",
+    issuer: a.issuer || "",
+  };
+}
 
 function AssignmentForm({
   doc,
@@ -35,20 +38,11 @@ function AssignmentForm({
   candidates: Candidate["candidates"];
   refresh: () => Promise<void>;
 }) {
-  const [value, setValue] = useState<Assignment>({
-    ...empty,
-    ...doc.assignment,
-    document_type: doc.assignment?.document_type || doc.category,
-  });
+  const [value, setValue] = useState<Assignment>(() => editableAssignment(doc));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(
-    () =>
-      setValue({
-        ...empty,
-        ...doc.assignment,
-        document_type: doc.assignment?.document_type || doc.category,
-      }),
+    () => setValue(editableAssignment(doc)),
     [doc.assignment, doc.category],
   );
   const slots = [...(item.scenario?.slots || [])];
@@ -63,10 +57,12 @@ function AssignmentForm({
       <summary>
         {doc.title} ·{" "}
         {doc.assignment?.state === "accepted"
-          ? "已确认归属"
+          ? doc.assignment.subject_id
+            ? "类型与主体已确认"
+            : "类型已确认，主体未指定"
           : doc.assignment?.state === "rejected"
             ? "已排除"
-            : "待确认"}
+            : "归属待确认"}
       </summary>
       <p className="hint">
         类型候选与主体是不同信息。确认只适用于此材料版本；切换文件版本需重新确认。
@@ -192,7 +188,9 @@ function AssignmentForm({
           {!slots.length && <p>可先在要求编辑器建立材料槽位。</p>}
         </fieldset>
         {error && <p role="alert">{error}</p>}
-        <button disabled={busy}>保存匹配决定</button>
+        <button disabled={busy}>
+          {value.state === "accepted" ? "确认材料归属" : "保存匹配决定"}
+        </button>
       </form>
     </details>
   );
