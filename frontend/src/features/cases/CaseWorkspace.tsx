@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Sparkles,
   StopCircle,
+  X,
 } from "lucide-react";
 import { api, date, post, type Case } from "../../api";
 import type { WorkspaceState } from "../../app/useWorkspace";
@@ -108,6 +109,10 @@ export function CaseWorkspace({
   loadCases,
 }: Props) {
   const [informationOpen, setInformationOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  useEffect(() => {
+    setAssistantOpen(false);
+  }, [item.id, tab]);
   useEffect(() => setInformationOpen(false), [item.id]);
   const applicant = item.subjects?.filter((s) => s.role === "applicant") || [];
   const sources = (item.documents || []).filter(
@@ -128,8 +133,33 @@ export function CaseWorkspace({
   const processing =
     !!running ||
     !!item.runs?.some((r) => ["queued", "running"].includes(r.status));
+  const renderAssistant = (compact: boolean) => (
+    <ChatPanel
+      compact={compact}
+      onExtract={() => act(() => run("extract"))}
+      onCheck={() => act(() => run("checks"))}
+      item={item}
+      running={running}
+      busy={busy}
+      act={act}
+      sendChat={sendChat}
+      activity={activity}
+      chatEnd={chatEnd}
+      chat={chat}
+      setChat={setChat}
+      requirements={requirements}
+      docMaterials={docMaterials}
+      openFacts={openFacts}
+      trace={trace}
+    />
+  );
   return (
-    <div className="case-workspace">
+    <div
+      className={
+        "case-workspace " +
+        (assistantOpen && tab !== "chat" ? "assistant-open" : "")
+      }
+    >
       <div className="case-heading">
         <div>
           <button className="back-link" onClick={() => setSelected(null)}>
@@ -146,6 +176,17 @@ export function CaseWorkspace({
           </div>
         </div>
         <div className="heading-actions">
+          {tab !== "chat" && (
+            <button
+              className="secondary assistant-toggle"
+              aria-expanded={assistantOpen}
+              aria-controls="case-assistant"
+              onClick={() => setAssistantOpen((v) => !v)}
+            >
+              <Sparkles size={16} />
+              {assistantOpen ? "收起助手" : "问齐备助手"}
+            </button>
+          )}
           <button
             className="secondary"
             onClick={() => {
@@ -298,151 +339,156 @@ export function CaseWorkspace({
         setTab={setTab}
         materialCount={docMaterials.length}
       />
-      <div className="case-active-content" id="case-active-content">
-        {running && (
-          <div className="run-bar">
-            <LoaderCircle className="spin" size={17} />
-            <span>{activity || "任务已接收，正在处理…"}</span>
-            <small>{trace.slice(-1)[0] || "进度会自动更新"}</small>
-            <button
-              onClick={() =>
-                act(async () => {
-                  await post("/runs/" + running.id + "/cancel");
-                  await refresh();
-                })
-              }
-            >
-              <StopCircle size={16} />
-              取消
-            </button>
-          </div>
-        )}
-        {item.checklist.stale && (
-          <div className="stale-banner">
-            <RefreshCw size={18} />
-            <div>
-              <strong>
-                {item.checklist.legacy
-                  ? "旧版检查需要重新核对"
-                  : "当前结果需要复检"}
-              </strong>
-              <span>
-                {item.checklist.stale_reason || "下方是历史结果，请重新预检。"}
-              </span>
+      <div className="case-body-layout">
+        <div className="case-active-content" id="case-active-content">
+          {running && (
+            <div className="run-bar">
+              <LoaderCircle className="spin" size={17} />
+              <span>{activity || "任务已接收，正在处理…"}</span>
+              <small>{trace.slice(-1)[0] || "进度会自动更新"}</small>
+              <button
+                onClick={() =>
+                  act(async () => {
+                    await post("/runs/" + running.id + "/cancel");
+                    await refresh();
+                  })
+                }
+              >
+                <StopCircle size={16} />
+                取消
+              </button>
             </div>
-          </div>
-        )}
-        {!item.checklist.stale &&
-          item.checklist.run_id &&
-          (!item.checklist.coverage.complete ||
-            !["completed", "waiting_for_input"].includes(
-              item.checklist.run_status || "",
-            )) && (
+          )}
+          {item.checklist.stale && (
             <div className="stale-banner">
-              <CircleAlert size={18} />
+              <RefreshCw size={18} />
               <div>
-                <strong>本次检查尚未完整完成</strong>
+                <strong>
+                  {item.checklist.legacy
+                    ? "旧版检查需要重新核对"
+                    : "当前结果需要复检"}
+                </strong>
                 <span>
-                  有效结果覆盖 {item.checklist.coverage.evaluated_count} /{" "}
-                  {item.checklist.coverage.expected_count} 项要求。
-                  {item.checklist.run_status === "failed"
-                    ? "运行失败，已完成的部分已保留。"
-                    : "存在未检查或无效的结果。"}{" "}
-                  请重新预检后再导出。
+                  {item.checklist.stale_reason ||
+                    "下方是历史结果，请重新预检。"}
                 </span>
               </div>
             </div>
           )}
-        {tab === "work" && <CaseWork key={item.id} item={item} />}
-        {tab === "processing" && (
-          <ProcessingPanel item={item} refresh={refresh} />
-        )}
-        {tab === "collaboration" && (
-          <CollaborationPanel item={item} refresh={refresh} />
-        )}
-        {tab === "overview" && (
-          <ReviewOverview
-            requirements={requirements}
-            item={item}
-            setTab={setTab}
-            findingMap={findingMap}
-            confirmed={confirmed}
-            act={act}
-            openEvidence={openEvidence}
-            setManual={setManual}
-            setManualNote={setManualNote}
-            setModal={setModal}
-            percentage={percentage}
-            doneCount={doneCount}
-            openFacts={openFacts}
-          />
-        )}
-        {tab === "issues" && (
-          <IssuesPanel item={item} refresh={refresh} setTab={setTab} />
-        )}
-        {tab === "packets" && <PacketsPanel key={item.id} item={item} />}
-        {tab === "parsing" && (
-          <ParseWorkspace key={item.id} item={item} refresh={refresh} />
-        )}
-        {tab === "matching" && (
-          <MaterialAssignments item={item} refresh={refresh} />
-        )}
-        {tab === "documents" && (
-          <DocumentsPanel
-            item={item}
-            busy={busy}
-            pickUpload={pickUpload}
-            act={act}
-            fileChange={fileChange}
-            setSource={setSource}
-            setModal={setModal}
-            docMaterials={docMaterials}
-            openDoc={openDoc}
-            setConfirm={setConfirm}
-            refresh={refresh}
-          />
-        )}
-        {tab === "rules" && (
-          <RequirementsPanel
-            setSource={setSource}
-            setModal={setModal}
-            docSources={docSources}
-            act={act}
-            openDoc={openDoc}
-            pickUpload={pickUpload}
-            running={running}
-            busy={busy}
-            run={run}
-            item={item}
-            setRuleEditor={setRuleEditor}
-            refresh={refresh}
-            setNotice={setNotice}
-          />
-        )}
-        {tab === "chat" && (
-          <ChatPanel
-            item={item}
-            running={running}
-            busy={busy}
-            act={act}
-            sendChat={sendChat}
-            activity={activity}
-            chatEnd={chatEnd}
-            chat={chat}
-            setChat={setChat}
-            requirements={requirements}
-            docMaterials={docMaterials}
-            openFacts={openFacts}
-            trace={trace}
-          />
-        )}
-        {tab === "history" && (
-          <HistoryPanel
-            item={item}
-            setConfirm={setConfirm}
-            setSelected={setSelected}
-            loadCases={loadCases}
-          />
+          {!item.checklist.stale &&
+            item.checklist.run_id &&
+            (!item.checklist.coverage.complete ||
+              !["completed", "waiting_for_input"].includes(
+                item.checklist.run_status || "",
+              )) && (
+              <div className="stale-banner">
+                <CircleAlert size={18} />
+                <div>
+                  <strong>本次检查尚未完整完成</strong>
+                  <span>
+                    有效结果覆盖 {item.checklist.coverage.evaluated_count} /{" "}
+                    {item.checklist.coverage.expected_count} 项要求。
+                    {item.checklist.run_status === "failed"
+                      ? "运行失败，已完成的部分已保留。"
+                      : "存在未检查或无效的结果。"}{" "}
+                    请重新预检后再导出。
+                  </span>
+                </div>
+              </div>
+            )}
+          {tab === "work" && <CaseWork key={item.id} item={item} />}
+          {tab === "processing" && (
+            <ProcessingPanel item={item} refresh={refresh} />
+          )}
+          {tab === "collaboration" && (
+            <CollaborationPanel item={item} refresh={refresh} />
+          )}
+          {tab === "overview" && (
+            <ReviewOverview
+              requirements={requirements}
+              item={item}
+              setTab={setTab}
+              findingMap={findingMap}
+              confirmed={confirmed}
+              act={act}
+              openEvidence={openEvidence}
+              setManual={setManual}
+              setManualNote={setManualNote}
+              setModal={setModal}
+              percentage={percentage}
+              doneCount={doneCount}
+              openFacts={openFacts}
+            />
+          )}
+          {tab === "issues" && (
+            <IssuesPanel item={item} refresh={refresh} setTab={setTab} />
+          )}
+          {tab === "packets" && <PacketsPanel key={item.id} item={item} />}
+          {tab === "parsing" && (
+            <ParseWorkspace key={item.id} item={item} refresh={refresh} />
+          )}
+          {tab === "matching" && (
+            <MaterialAssignments item={item} refresh={refresh} />
+          )}
+          {tab === "documents" && (
+            <DocumentsPanel
+              item={item}
+              busy={busy}
+              pickUpload={pickUpload}
+              act={act}
+              fileChange={fileChange}
+              setSource={setSource}
+              setModal={setModal}
+              docMaterials={docMaterials}
+              openDoc={openDoc}
+              setConfirm={setConfirm}
+              refresh={refresh}
+            />
+          )}
+          {tab === "rules" && (
+            <RequirementsPanel
+              setSource={setSource}
+              setModal={setModal}
+              docSources={docSources}
+              act={act}
+              openDoc={openDoc}
+              pickUpload={pickUpload}
+              running={running}
+              busy={busy}
+              run={run}
+              item={item}
+              setRuleEditor={setRuleEditor}
+              refresh={refresh}
+              setNotice={setNotice}
+            />
+          )}
+          {tab === "chat" && renderAssistant(false)}
+          {tab === "history" && (
+            <HistoryPanel
+              item={item}
+              setConfirm={setConfirm}
+              setSelected={setSelected}
+              loadCases={loadCases}
+            />
+          )}
+        </div>
+        {assistantOpen && tab !== "chat" && (
+          <aside
+            id="case-assistant"
+            className="case-assistant-dock"
+            aria-label="齐备助手侧栏"
+          >
+            <div className="assistant-dock-heading">
+              <strong>在当前页面继续对话</strong>
+              <button
+                aria-label="关闭助手侧栏"
+                onClick={() => setAssistantOpen(false)}
+              >
+                <X size={17} />
+              </button>
+            </div>
+            {renderAssistant(true)}
+          </aside>
         )}
       </div>
       <footer className="workspace-footer">

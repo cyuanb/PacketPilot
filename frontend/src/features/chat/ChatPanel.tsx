@@ -1,6 +1,5 @@
 import {
   BookOpen,
-  Check,
   LoaderCircle,
   Paperclip,
   Plus,
@@ -9,6 +8,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { type Case } from "../../api";
+import { MessageBody } from "./MessageBody";
+import { useEffect } from "react";
 import type { WorkspaceState } from "../../app/useWorkspace";
 type Props = Pick<
   WorkspaceState,
@@ -24,7 +25,12 @@ type Props = Pick<
   | "docMaterials"
   | "openFacts"
   | "trace"
-> & { item: Case };
+> & {
+  item: Case;
+  compact?: boolean;
+  onExtract?: () => void;
+  onCheck?: () => void;
+};
 export function ChatPanel({
   item,
   running,
@@ -39,9 +45,31 @@ export function ChatPanel({
   docMaterials,
   openFacts,
   trace,
+  compact = false,
+  onExtract,
+  onCheck,
 }: Props) {
+  useEffect(() => {
+    const container = chatEnd.current?.closest(".chat-scroll");
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [item.id, item.messages?.length, compact, chatEnd]);
+  const latest = item.runs?.find((r) => r.result.skill);
+  const labels: Record<string, string> = {
+    get_case_context: "读取事项与已确认背景",
+    read_document: "阅读文档原文",
+    save_requirement_draft: "保存要求草稿",
+    run_checks: "执行规则检查",
+    record_semantic_findings: "保存有证据的语义核验",
+    propose_facts: "提出背景修改建议",
+    ask_user: "记录待确认问题",
+    recall_conversation: "回查本事项对话",
+  };
   return (
-    <div className="chat-grid">
+    <div
+      className={
+        "chat-grid agent-workspace " + (compact ? "agent-compact" : "")
+      }
+    >
       <section className="panel chat-panel">
         <div className="panel-header">
           <div className="assistant-title">
@@ -50,20 +78,39 @@ export function ChatPanel({
             </span>
             <div>
               <h2>齐备助手</h2>
-              <p>基于这份申请的通知、材料和已确认背景</p>
+              <p>读通知、查材料、追问未知条件，和你一起完成申请准备</p>
             </div>
           </div>
         </div>
-        <div className="chat-scroll">
+        <div className="agent-actions">
+          {onExtract && (
+            <button disabled={busy || !!running} onClick={onExtract}>
+              AI 提取通知要求
+            </button>
+          )}
+          {onCheck && (
+            <button
+              disabled={busy || !!running || !requirements.length}
+              onClick={onCheck}
+            >
+              AI 核对当前材料
+            </button>
+          )}
+          <span>本申请内连续对话 · 背景变更需你确认</span>
+        </div>
+        <div className="chat-scroll" aria-live="polite">
           {!item.messages?.length && (
             <div className="chat-welcome">
               <span className="large-assistant">
                 <Sparkles size={28} />
               </span>
-              <h2>一起把申请准备清楚</h2>
-              <p>我会查看要求与材料，把问题和依据一起告诉你。</p>
+              <h2>告诉齐备，你想完成什么</h2>
+              <p>
+                我会按任务流程调用工具、读取依据；条件不明时先问你，检查结果和修改建议都会保留。
+              </p>
               <div className="suggestions">
                 {[
+                  "请帮我梳理这份申请，下一步先做什么？",
                   "我现在还缺哪些材料？",
                   "帮我解释需要人工确认的地方",
                   "补件后有哪些变化？",
@@ -89,7 +136,7 @@ export function ChatPanel({
               )}
               <div>
                 <small>{m.role === "user" ? "你" : "齐备助手"}</small>
-                <div className="message-body">{m.content}</div>
+                <MessageBody text={m.content} />
               </div>
             </div>
           ))}
@@ -171,18 +218,69 @@ export function ChatPanel({
               </button>
             </section>
           ))}
-        <section className="panel small-panel">
-          <h3>处理进度</h3>
-          {trace.length ? (
-            trace.map((t, i) => (
-              <div className="trace-item" key={i}>
-                <Check size={13} />
-                {t}
-              </div>
-            ))
+        <section className="panel small-panel agent-execution">
+          <h3>{running ? "正在执行" : "最近一次助手执行"}</h3>
+          {latest ? (
+            <>
+              <p>
+                <strong>{latest.result.skill?.label}</strong> ·{" "}
+                {(
+                  {
+                    queued: "排队中",
+                    running: "执行中",
+                    completed: "已完成",
+                    waiting_for_input: "等待你确认",
+                    failed: "未完成",
+                    cancelled: "已取消",
+                  } as Record<string, string>
+                )[latest.status] || latest.status}
+              </p>
+              <details>
+                <summary>查看本次 Skill 流程</summary>
+                <ol>
+                  {latest.result.skill?.steps.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+              </details>
+              {!!latest.result.memory && (
+                <p className="hint">
+                  已载入 {latest.result.memory.turns} 轮历史对话
+                  {latest.result.memory.window_limited
+                    ? "；更早内容可按关键词回查"
+                    : ""}
+                  。
+                </p>
+              )}
+              <ol className="agent-tool-steps">
+                {latest.result.tool_steps?.map((step) => (
+                  <li key={step.id} data-status={step.status}>
+                    <span>{labels[step.name] || step.name}</span>
+                    <small>
+                      {step.status === "completed"
+                        ? "完成"
+                        : step.status === "failed"
+                          ? "失败"
+                          : ["failed", "cancelled"].includes(latest.status)
+                            ? "中断"
+                            : "执行中"}
+                    </small>
+                  </li>
+                ))}
+              </ol>
+              {latest.error && (
+                <p role="status" className="warning-text">
+                  {latest.error}。明确规则仍可通过“基础预检”核对。
+                </p>
+              )}
+              {!latest.result.tool_steps?.length && (
+                <p className="hint">尚无已执行的工具记录。</p>
+              )}
+            </>
           ) : (
-            <p>分析开始后，这里会显示正在进行的操作。</p>
+            <p>发起任务后，将显示实际使用的 Skill 与工具执行结果。</p>
           )}
+          {running && !latest && trace.map((t, i) => <p key={i}>{t}</p>)}
         </section>
       </aside>
     </div>

@@ -128,8 +128,9 @@ export function useWorkspace({
     loadCases,
   );
   useEffect(() => {
-    if (tab === "chat")
-      chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const container = chatEnd.current?.closest(".chat-scroll");
+    if (container)
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [item?.messages?.length, tab]);
   const run = async (kind: "checks" | "extract") => {
     if (!item) return;

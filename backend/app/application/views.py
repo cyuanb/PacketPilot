@@ -49,7 +49,7 @@ def case_view(db, c, detail=False):
                 .where(Message.case_id == c.id, Message.role.in_(["user", "assistant"]))
                 .order_by(Message.created_at)
             )
-            if m.content
+            if m.content and not (m.role == "assistant" and (m.data or {}).get("tool_calls"))
         ]
         result["runs"] = [
             run_view(r)

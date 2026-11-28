@@ -24,6 +24,13 @@ from .dependencies import current_user
 router = APIRouter()
 
 
+@router.get("/api/v1/agent/skills")
+def skill_catalog(user=Depends(current_user)):
+    from ..agent_skills import SKILLS, load_skill
+
+    return [load_skill(name)[1] for name in SKILLS]
+
+
 @router.post("/api/v1/cases/{case_id}/extract", status_code=202)
 def extract(
     case_id: str,

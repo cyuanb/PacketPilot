@@ -795,6 +795,22 @@
         }
       }
     },
+    "/api/v1/agent/skills": {
+      "get": {
+        "summary": "Skill Catalog",
+        "operationId": "skill_catalog_api_v1_agent_skills_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cases/{case_id}/extract": {
       "post": {
         "summary": "Extract",

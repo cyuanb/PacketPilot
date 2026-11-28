@@ -187,7 +187,12 @@ def process(run_id, fence, kind):
                         case_id=r.case_id,
                         run_id=r.id,
                         role="assistant",
-                        content=f"本次任务未完全完成：{safe}。已完成的检查结果已保留。",
+                        content=f"本次任务未完全完成：{safe}。"
+                        + (
+                            "已完成的检查结果已保留。"
+                            if r.result.get("findings")
+                            else "尚未生成新的检查结论。"
+                        ),
                     )
                 )
                 event(db, r.id, "run.failed", {"message": safe})

@@ -88,6 +88,9 @@ export type Run = {
   model: string;
   result: {
     answer?: string;
+    skill?: { name: string; label: string; hash: string; steps: string[] };
+    memory?: { turns: number; window_limited: boolean; policy: string };
+    tool_steps?: { id: string; name: string; status: string }[];
     findings?: Finding[];
     proposed_facts?: Record<string, string>;
     question?: string;

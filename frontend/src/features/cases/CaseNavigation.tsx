@@ -4,6 +4,7 @@ import {
   CalendarDays,
   FolderOpen,
   ListChecks,
+  Sparkles,
 } from "lucide-react";
 import type { Tab } from "../../app/routes";
 
@@ -17,6 +18,12 @@ const groups = [
       ["issues", "问题与补件"],
       ["history", "检查历史"],
     ],
+  },
+  {
+    id: "assistant",
+    label: "齐备助手",
+    icon: Sparkles,
+    tabs: [["chat", "对话工作台"]],
   },
   {
     id: "materials",
@@ -42,7 +49,6 @@ const groups = [
     tabs: [
       ["work", "计划与期限"],
       ["collaboration", "收集与复核"],
-      ["chat", "对话助手"],
     ],
   },
   {
